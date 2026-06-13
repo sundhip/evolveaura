@@ -1,8 +1,7 @@
 import { Response } from 'express';
 import prisma from '../config/db';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { selectQuestsForUser } from '../services/questEngine';
-import { processXPGain } from '../services/evolutionEngine';
+import { getDynamicChallenge, getDifficultyMultiplier } from '../services/questEngine';
 
 export const getDailyQuests = async (req: AuthRequest, res: Response) => {
   try {
@@ -15,41 +14,53 @@ export const getDailyQuests = async (req: AuthRequest, res: Response) => {
     });
 
     if (userQuests.length === 0) {
-      // Fetch user profile scores
       const profile = await prisma.profile.findUnique({ where: { userId: req.userId! } });
-      const lastAssessment = await prisma.assessment.findFirst({
+      const lastAss = await prisma.assessment.findFirst({
         where: { userId: req.userId! },
         orderBy: { completedAt: 'desc' }
       });
 
-      const pathScores = lastAssessment ? {
-        scholar: lastAssessment.scholarScore,
-        warrior: lastAssessment.warriorScore,
-        sage: lastAssessment.sageScore,
-        creator: lastAssessment.creatorScore
-      } : { scholar: 50, warrior: 50, sage: 50, creator: 50 };
+      const mult = getDifficultyMultiplier(profile?.auraRank || 'E');
+      const dayOfWeek = new Date().getDay();
+      const dynChallenge = getDynamicChallenge(dayOfWeek);
 
-      // Generate
-      const templates = selectQuestsForUser(pathScores);
-      
-      // Save and map
-      userQuests = [];
-      for (const temp of templates) {
-        let quest = await prisma.quest.findFirst({ where: { title: temp.title } });
-        if (!quest) {
-          quest = await prisma.quest.create({ data: temp });
-        }
+      // Fetch default seeded templates
+      const templates = await prisma.quest.findMany({
+        where: { path: { in: ['SCHOLAR', 'WARRIOR', 'SAGE', 'CREATOR'] } }
+      });
 
-        const uq = await prisma.userQuest.create({
+      // Add dynamic weekday quest
+      let dynamicQuest = await prisma.quest.findFirst({ where: { title: dynChallenge.title } });
+      if (!dynamicQuest) {
+        dynamicQuest = await prisma.quest.create({
+          data: {
+            title: dynChallenge.title,
+            description: dynChallenge.desc,
+            path: dynChallenge.path,
+            difficulty: "MEDIUM",
+            xpReward: 100,
+            goldReward: 30,
+            verificationType: "ACTION"
+          }
+        });
+      }
+
+      const allQuests = [...templates.slice(0, 4), dynamicQuest];
+
+      for (const q of allQuests) {
+        await prisma.userQuest.create({
           data: {
             userId: req.userId!,
-            questId: quest.id,
+            questId: q.id,
             date: today
-          },
-          include: { quest: true }
+          }
         });
-        userQuests.push(uq);
       }
+
+      userQuests = await prisma.userQuest.findMany({
+        where: { userId: req.userId!, date: today },
+        include: { quest: true }
+      });
     }
 
     res.json(userQuests);
@@ -58,72 +69,86 @@ export const getDailyQuests = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const completeQuest = async (req: AuthRequest, res: Response) => {
+export const verifyQuest = async (req: AuthRequest, res: Response) => {
   try {
-    const { userQuestId } = req.params;
-    const userQuest = await prisma.userQuest.findUnique({
+    const { userQuestId, inputData } = req.body;
+    const uq = await prisma.userQuest.findUnique({
       where: { id: userQuestId },
       include: { quest: true, user: { include: { profile: true } } }
     });
 
-    if (!userQuest) return res.status(404).json({ error: 'Quest not found' });
-    if (userQuest.completed) return res.status(400).json({ error: 'Quest already completed' });
+    if (!uq) return res.status(404).json({ error: 'Quest not found' });
+    if (uq.completed) return res.status(400).json({ error: 'Quest already completed' });
 
-    // Mark completed
-    const updatedUserQuest = await prisma.userQuest.update({
+    // Validation checks
+    if (uq.quest.verificationType === 'REFLECTION') {
+      if (!inputData || inputData.trim().length < 50) {
+        return res.status(400).json({ error: 'Reflection log must be at least 50 characters long.' });
+      }
+    }
+
+    await prisma.userQuest.update({
       where: { id: userQuestId },
-      data: { completed: true, completedAt: new Date() }
+      data: { completed: true, completedAt: new Date(), inputData }
     });
 
-    // XP Logic
-    const profile = userQuest.user.profile!;
-    const xpReward = userQuest.quest.xpReward;
-    const xpDetails = processXPGain(profile.currentLevel, profile.currentXP, xpReward);
+    // Award rewards
+    const profile = uq.user.profile!;
+    let xpAwarded = uq.quest.xpReward;
+    let goldAwarded = uq.quest.goldReward;
+
+    let level = profile.currentLevel;
+    let xp = profile.currentXP + xpAwarded;
+    let required = Math.round(100 * Math.pow(level, 1.5));
+    let leveledUp = false;
+
+    while (xp >= required) {
+      xp -= required;
+      level += 1;
+      leveledUp = true;
+      required = Math.round(100 * Math.pow(level, 1.5));
+    }
 
     await prisma.profile.update({
       where: { userId: req.userId! },
       data: {
-        currentLevel: xpDetails.level,
-        currentXP: xpDetails.xp,
-        currentStreak: { increment: 1 },
-        lastActiveAt: new Date()
+        currentXP: xp,
+        currentLevel: level,
+        auraGold: profile.auraGold + goldAwarded,
+        currentStreak: { increment: 1 }
       }
     });
 
     await prisma.xPLog.create({
       data: {
         userId: req.userId!,
-        xpGained: xpReward,
-        source: `Quest Completion: ${userQuest.quest.title}`
+        xpGained: xpAwarded,
+        source: `Completed Quest: ${uq.quest.title}`
       }
     });
 
-    // Check achievement unlock
-    const unlockedAchievements = [];
-    const achievements = await prisma.achievement.findMany();
-    for (const ach of achievements) {
-      const alreadyUnlocked = await prisma.userAchievement.findUnique({
-        where: { userId_achievementId: { userId: req.userId!, achievementId: ach.id } }
-      });
-      if (alreadyUnlocked) continue;
+    res.json({ completed: true, xpGained: xpAwarded, goldGained: goldAwarded, leveledUp, level });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
-      let meetsRequirement = false;
-      if (ach.requirementType === 'streak' && profile.currentStreak + 1 >= ach.requirementValue) {
-        meetsRequirement = true;
-      } else if (ach.requirementType === 'level' && xpDetails.level >= ach.requirementValue) {
-        meetsRequirement = true;
-      }
+export const claimDailyReward = async (req: AuthRequest, res: Response) => {
+  try {
+    const profile = await prisma.profile.findUnique({ where: { userId: req.userId! } });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
-      if (meetsRequirement) {
-        const ua = await prisma.userAchievement.create({
-          data: { userId: req.userId!, achievementId: ach.id },
-          include: { achievement: true }
-        });
-        unlockedAchievements.push(ua.achievement);
-      }
-    }
+    const streak = profile.currentStreak;
+    const rewards = [20, 30, 50, 75, 100, 150, 250];
+    const rewardIndex = streak % 7;
+    const goldGained = rewards[rewardIndex];
 
-    res.json({ userQuest: updatedUserQuest, xpDetails, unlockedAchievements });
+    await prisma.profile.update({
+      where: { userId: req.userId! },
+      data: { auraGold: { increment: goldGained } }
+    });
+
+    res.json({ goldGained, newGold: profile.auraGold + goldGained });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

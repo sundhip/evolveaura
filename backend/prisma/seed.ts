@@ -2,39 +2,35 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const achievements = [
-    { name: "7 Day Streak", description: "Maintain a study or habits streak for 7 consecutive days.", requirementType: "streak", requirementValue: 7, iconName: "Flame" },
-    { name: "30 Day Streak", description: "Maintain a study or habits streak for 30 consecutive days.", requirementType: "streak", requirementValue: 30, iconName: "Crown" },
-    { name: "Scholar Rank B", description: "Reach Rank B in the Scholar path.", requirementType: "path_rank", requirementValue: 61, iconName: "BookOpen" },
-    { name: "Detox Champion", description: "Achieve a Detox Score of 90 or higher in a single day.", requirementType: "detox", requirementValue: 90, iconName: "ShieldCheck" },
-    { name: "Focus Master", description: "Complete a total of 10 Focus sessions.", requirementType: "focus", requirementValue: 10, iconName: "Timer" },
-    { name: "Consistency Master", description: "Complete all 4 daily quests for 5 days in a row.", requirementType: "consistency", requirementValue: 5, iconName: "Award" }
-  ];
+  // Clear any existing quests and bosses to prevent unique conflicts
+  await prisma.quest.deleteMany({}).catch(() => {});
+  await prisma.boss.deleteMany({}).catch(() => {});
 
-  for (const ach of achievements) {
-    await prisma.achievement.upsert({
-      where: { name: ach.name },
-      update: {},
-      create: ach
-    });
-  }
-
-  // Pre-seed some default quests
+  // Seed standard quests
   const quests = [
-    { title: "Focus Block", description: "Perform 1 session of 25 minutes of deep focus without checking your phone.", path: "Scholar", difficulty: "Easy", xpReward: 25, category: "Deep Work", subSkill: "Focus" },
-    { title: "Quick Review", description: "Write down 5 key bullet points from memory about a topic studied yesterday.", path: "Scholar", difficulty: "Easy", xpReward: 25, category: "Active Recall", subSkill: "Retention" },
-    { title: "Hydration Check", description: "Drink at least 8 glasses (2.5 liters) of water today.", path: "Warrior", difficulty: "Easy", xpReward: 25, category: "Hydration", subSkill: "Energy" },
-    { title: "Evening Walk", description: "Go for a brisk 15-minute walk outdoors. No devices.", path: "Warrior", difficulty: "Easy", xpReward: 25, category: "Walking", subSkill: "Activity" },
-    { title: "Mindful Breathing", description: "Perform 5 minutes of mindful box breathing (4s inhale, 4s hold, 4s exhale, 4s hold).", path: "Sage", difficulty: "Easy", xpReward: 25, category: "Breathing", subSkill: "Mindfulness" },
-    { title: "Gratitude Journal", description: "Write down 3 specific things you are grateful for today and why.", path: "Sage", difficulty: "Easy", xpReward: 25, category: "Gratitude", subSkill: "Reflection" },
-    { title: "Curiosity Spark", description: "Read an article or watch a video about an completely unfamiliar topic.", path: "Creator", difficulty: "Easy", xpReward: 25, category: "Writing", subSkill: "Curiosity" },
-    { title: "Mind Mapping", description: "Draw a mind map of a creative project or business concept.", path: "Creator", difficulty: "Easy", xpReward: 25, category: "Mind Maps", subSkill: "Innovation" }
+    { title: "Active Recall Study", description: "Complete a 25 minute focus session using active recall flashcards.", path: "SCHOLAR", difficulty: "EASY", xpReward: 50, goldReward: 10, verificationType: "TIMER" },
+    { title: "Deep Work Block", description: "Maintain absolute focus for 45 minutes on your weakest academic subject.", path: "SCHOLAR", difficulty: "MEDIUM", xpReward: 100, goldReward: 25, verificationType: "TIMER" },
+    { title: "Hydration Target", description: "Drink at least 3 liters of water and log your recovery logs.", path: "WARRIOR", difficulty: "EASY", xpReward: 50, goldReward: 10, verificationType: "ACTION" },
+    { title: "Outdoor Walking", description: "Walk for 30 minutes outdoors without checking social media.", path: "WARRIOR", difficulty: "MEDIUM", xpReward: 80, goldReward: 20, verificationType: "WALKING" },
+    { title: "Mindfulness Meditation", description: "Perform 10 minutes of box breathing meditation to stabilize focus.", path: "SAGE", difficulty: "EASY", xpReward: 50, goldReward: 10, verificationType: "ACTION" },
+    { title: "Nightly Reflection Log", description: "Write down your end-of-day reflection review (minimum 50 characters).", path: "SAGE", difficulty: "MEDIUM", xpReward: 80, goldReward: 20, verificationType: "REFLECTION" },
+    { title: "Creative Blueprint", description: "Draft a creative map or project design explaining a novel idea.", path: "CREATOR", difficulty: "EASY", xpReward: 50, goldReward: 10, verificationType: "ACTION" },
+    { title: "Mini Project Code", description: "Spend 45 minutes writing code or drawing layouts for your personal project.", path: "CREATOR", difficulty: "MEDIUM", xpReward: 100, goldReward: 25, verificationType: "TIMER" },
   ];
 
   for (const q of quests) {
-    await prisma.quest.create({
-      data: q
-    }).catch(() => {});
+    await prisma.quest.create({ data: q }).catch((e) => console.error("Quest seed fail", e));
+  }
+
+  // Seed bosses representing bad habits
+  const bosses = [
+    { name: "Doom Scroll Demon", description: "Drains focus. Attacks when you check social media first thing in the morning.", maxHP: 2000, badgeReward: "Demon Slayer", xpReward: 500, goldReward: 100, spriteName: "demon" },
+    { name: "Attention Destroyer", description: "Scatters attention span. Attacks when you multitask.", maxHP: 5000, badgeReward: "Zen Master", xpReward: 1000, goldReward: 250, spriteName: "destroyer" },
+    { name: "Sleep Reaper", description: "Steals recovery. Attacks when you look at screens past 11:00 PM.", maxHP: 8000, badgeReward: "Night Sentinel", xpReward: 1500, goldReward: 400, spriteName: "reaper" }
+  ];
+
+  for (const b of bosses) {
+    await prisma.boss.create({ data: b }).catch((e) => console.error("Boss seed fail", e));
   }
 
   console.log("Database seeded successfully.");

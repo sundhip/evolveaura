@@ -4,9 +4,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import assessmentRoutes from './routes/assessmentRoutes';
 import questRoutes from './routes/questRoutes';
-import subjectRoutes from './routes/subjectRoutes';
-import detoxRoutes from './routes/detoxRoutes';
-import analysisRoutes from './routes/analysisRoutes';
+import bossRoutes from './routes/bossRoutes';
+import projectRoutes from './routes/projectRoutes';
 import { errorHandler } from './middleware/errorMiddleware';
 
 dotenv.config();
@@ -21,18 +20,15 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/assessment', assessmentRoutes);
 app.use('/api/quests', questRoutes);
-app.use('/api/subjects', subjectRoutes);
-app.use('/api/detox', detoxRoutes);
-app.use('/api/analysis', analysisRoutes);
+app.use('/api/bosses', bossRoutes);
+app.use('/api/projects', projectRoutes);
 
-// Base route
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// Error handling
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`[EvolveAura Backend] Server running on port ${PORT}`);
+  console.log('[EvolveAura Backend V2] Server running on port ' + PORT);
 });
