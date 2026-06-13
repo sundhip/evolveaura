@@ -1,4 +1,15 @@
-const BASE_URL = 'http://localhost:5000/api';
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
+  let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+};
+
+const BASE_URL = getBaseUrl();
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
