@@ -12,7 +12,7 @@ const STEPS = [
   {
     targetId: null,
     title: "System Awakening",
-    description: "Welcome, Evolver. The EvolveAura system has scanned your digital signature. Digital saturation detected. Let's calibrate your stabilization matrix to target real-world growth.",
+    description: "Welcome, Evolver. The EvolveAura system has scanned your digital signature. Let's calibrate your stabilization matrix to target real-world growth.",
     badge: "Calibration Init"
   },
   {
@@ -36,25 +36,43 @@ const STEPS = [
   {
     targetId: "assessment-portal",
     title: "Calibration Portal",
-    description: "Felt your habits change? Access the assessment portal here at any time to retake the diagnostic and recalibrate your focus path bottleneck.",
+    description: "Access the assessment portal here at any time to retake the diagnostic and recalibrate your focus path bottleneck.",
     badge: "Recalibration Portal"
   },
   {
-    targetId: "weakness-alerts",
-    title: "Aura Companion AI",
-    description: "Your behavioral assistant reads telemetry, identifies daily focus leaks, and gives psychological prompts based on Self-Determination Theory.",
-    badge: "AI Guide"
+    targetId: "focus-telemetry",
+    title: "Focus Mode Tab",
+    description: "Jump to the Focus section to run Pomodoro study timers. Every completed session plants a tree in your Forest and damages weekly bosses.",
+    badge: "Focus Module"
+  },
+  {
+    targetId: "subjects-grid",
+    title: "Subjects Analysis Tab",
+    description: "Review and rate your subject understanding, retention, problem-solving, and confidence. Keep academic disciplines stable.",
+    badge: "Subject Grid"
+  },
+  {
+    targetId: "about-nav-link",
+    title: "About Platform Tab",
+    description: "Learn more about EvolveAura's core self-regulated learning principles, path metrics, and psychological research models.",
+    badge: "Platform Overview"
+  },
+  {
+    targetId: "faq-nav-link",
+    title: "FAQ Support Tab",
+    description: "Read common questions and answers explaining streaks, shields, Pomodoro forest calculations, and boss fights.",
+    badge: "Support Hub"
   },
   {
     targetId: "chest-tracker",
     title: "Daily Login Tracker",
-    description: "Build your streak by signing in every day. Each consecutive day unlocks larger chests containing higher XP rewards. Consistency pays off!",
+    description: "Build your streak by signing in every day. Each consecutive day unlocks larger chests containing higher XP rewards.",
     badge: "Daily Tracker"
   },
   {
     targetId: "boss-trials",
     title: "Gate of Trials (Weekly Boss)",
-    description: "Your digital distractions (like doom-scrolling) take shape as weekly raid bosses. Deal damage to them by completing Pomodoro timers and tasks.",
+    description: "Your digital distractions take shape as weekly raid bosses. Deal damage to them by completing Pomodoro timers and tasks.",
     badge: "Habit Slayer"
   },
   {
@@ -68,6 +86,12 @@ const STEPS = [
     title: "Emergency Stabilizer",
     description: "Feeling an overwhelming urge to scroll short-form feeds? Tap this emergency button immediately to start a guided box-breathing stabilizer.",
     badge: "Crisis Stabilizer"
+  },
+  {
+    targetId: "aura-chatbot",
+    title: "Aura Assistant Bot",
+    description: "Got doubts about EvolveAura's mechanics, leveling, or quests? Click this bubble to chat with the built-in guide at any time!",
+    badge: "Platform Helper"
   },
   {
     targetId: null,

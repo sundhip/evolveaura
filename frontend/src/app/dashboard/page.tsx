@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { apiRequest } from '../../lib/api';
 import AwakeningTour from '../../components/AwakeningTour';
 import FocusTimer from '../../components/FocusTimer';
+import ChatBot from '../../components/ChatBot';
 import { Zap, ShieldCheck, Compass, Heart, Flame, Timer, Award, AlertCircle, Shield, Gift, Plus } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -139,8 +140,8 @@ export default function DashboardPage() {
             <Link href="/dashboard" className="text-white">Dashboard</Link>
             <Link id="focus-telemetry" href="/focus" className="text-slate-400 hover:text-white">Focus</Link>
             <Link id="subjects-grid" href="/subject-analysis" className="text-slate-400 hover:text-white">Subjects</Link>
-            <Link href="/about" className="text-slate-400 hover:text-white">About</Link>
-            <Link href="/faq" className="text-slate-400 hover:text-white">FAQ</Link>
+            <Link id="about-nav-link" href="/about" className="text-slate-400 hover:text-white">About</Link>
+            <Link id="faq-nav-link" href="/faq" className="text-slate-400 hover:text-white">FAQ</Link>
             <button onClick={() => setShowTour(true)} className="text-slate-400 hover:text-white font-medium transition cursor-pointer">Tour</button>
             <button onClick={handleSignOut} className="text-red-400 hover:text-red-300 font-bold transition cursor-pointer">Sign Out</button>
           </nav>
@@ -194,14 +195,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Aura Companion Widget */}
-          <div id="weakness-alerts" className="glass-panel p-6 border-l-4 border-l-[#8B5CF6] space-y-3 bg-gradient-to-r from-slate-950/20 to-slate-900/40">
-            <div className="text-[10px] font-bold text-[#8B5CF6] uppercase tracking-widest flex items-center">
-              <Compass className="w-4 h-4 mr-1.5" /> Aura Companion
-            </div>
-            <p className="text-xs text-white leading-relaxed font-medium">
-              "Good Morning Evolver. You completed {quests.filter(q => q.completed).length} quests today. Keep focus high to conquer the {activeBoss?.boss?.name || 'Sleep Reaper'}."
-            </p>
-          </div>
+          {/* Aura Companion Widget Removed - Replaced with ChatBot */}
 
           {/* Daily Reward Chest */}
           <div id="chest-tracker" className="glass-panel p-6 space-y-4">
@@ -377,6 +371,8 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      {/* Chat Bot floating helper */}
+      <ChatBot />
     </div>
   );
 }
