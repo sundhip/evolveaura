@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiRequest } from '../../lib/api';
@@ -11,6 +11,38 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+        const { email: gEmail, name: gName } = event.data;
+        setLoading(true);
+        setError('');
+        try {
+          const gId = `google-mock-${Math.random().toString(36).substring(2, 11)}`;
+          const data = await apiRequest('/auth/google', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: gEmail,
+              name: gName,
+              googleId: gId
+            })
+          });
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          router.push('/onboarding');
+        } catch (err: any) {
+          setError(err.message || 'Google Authentication failed');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,26 +63,16 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleSignUp = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await apiRequest('/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: 'google-evolve-aura-user@gmail.com',
-          name: 'Google Evolver',
-          googleId: 'google-oauth-mock-12345'
-        })
-      });
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      router.push('/onboarding');
-    } catch (err: any) {
-      setError(err.message || 'Google Authentication failed');
-    } finally {
-      setLoading(false);
-    }
+  const handleGoogleClick = () => {
+    const width = 500;
+    const height = 600;
+    const left = window.screenX + (window.innerWidth - width) / 2;
+    const top = window.screenY + (window.innerHeight - height) / 2;
+    window.open(
+      '/google-simulator',
+      'GoogleAuthPopup',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
   };
 
   return (
@@ -105,7 +127,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] disabled:opacity-50 text-white font-bold transition duration-300"
+            className="w-full py-4 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] disabled:opacity-50 text-white font-bold transition duration-300 cursor-pointer"
           >
             {loading ? 'Creating...' : 'Register'}
           </button>
@@ -117,7 +139,7 @@ export default function RegisterPage() {
         </div>
 
         <button
-          onClick={handleGoogleSignUp}
+          onClick={handleGoogleClick}
           disabled={loading}
           className="w-full py-3.5 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 text-white font-bold transition duration-300 flex items-center justify-center space-x-2 cursor-pointer"
         >

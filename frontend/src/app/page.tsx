@@ -12,9 +12,14 @@ export default function LandingPage() {
         <div className="text-2xl font-extrabold tracking-wider text-[#8B5CF6]">
           EVOLVE<span className="text-white">AURA</span>
         </div>
-        <Link href="/login" className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium border border-slate-700 transition duration-300">
-          Sign In
-        </Link>
+        <div className="flex space-x-4">
+          <Link href="/login" className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium border border-slate-700 transition duration-300">
+            Sign In
+          </Link>
+          <Link href="/register" className="px-5 py-2 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-medium transition duration-300">
+            Sign Up
+          </Link>
+        </div>
       </div>
 
       {/* Hero Section */}

@@ -44,7 +44,8 @@ export default function DashboardPage() {
       const b = await apiRequest('/bosses/active');
       setActiveBoss(b);
 
-      if (u.profile && u.profile.auraScore === 0) {
+      const completedTour = localStorage.getItem('hasCompletedTour');
+      if (!completedTour) {
         setShowTour(true);
       }
     } catch (e) {
@@ -128,7 +129,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0F172A] pb-12 text-slate-300">
-      {showTour && <AwakeningTour bottleneck={profile.auraRank} onComplete={() => setShowTour(false)} />}
+      {showTour && <AwakeningTour bottleneck={profile?.auraRank || 'E'} onComplete={() => { setShowTour(false); localStorage.setItem('hasCompletedTour', 'true'); }} />}
 
       {/* Nav Header */}
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
@@ -136,10 +137,11 @@ export default function DashboardPage() {
           <div className="text-xl font-extrabold text-[#8B5CF6]">EVOLVE<span className="text-white">AURA</span></div>
           <nav className="flex space-x-6 text-sm font-medium items-center">
             <Link href="/dashboard" className="text-white">Dashboard</Link>
-            <Link href="/focus" className="text-slate-400 hover:text-white">Focus</Link>
-            <Link href="/subject-analysis" className="text-slate-400 hover:text-white">Subjects</Link>
+            <Link id="focus-telemetry" href="/focus" className="text-slate-400 hover:text-white">Focus</Link>
+            <Link id="subjects-grid" href="/subject-analysis" className="text-slate-400 hover:text-white">Subjects</Link>
             <Link href="/about" className="text-slate-400 hover:text-white">About</Link>
             <Link href="/faq" className="text-slate-400 hover:text-white">FAQ</Link>
+            <button onClick={() => setShowTour(true)} className="text-slate-400 hover:text-white font-medium transition cursor-pointer">Tour</button>
             <button onClick={handleSignOut} className="text-red-400 hover:text-red-300 font-bold transition cursor-pointer">Sign Out</button>
           </nav>
         </div>
@@ -148,6 +150,7 @@ export default function DashboardPage() {
       {/* Emergency Button */}
       <div className="max-w-6xl mx-auto px-4 mt-6 text-right">
         <button 
+          id="distraction-stabilizer"
           onClick={() => { setShowDistracted(true); setBreathActive(true); }}
           className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-red-600/20"
         >
@@ -166,13 +169,13 @@ export default function DashboardPage() {
               <Flame className="w-3.5 h-3.5 mr-1 fill-orange-400" /> {profile.currentStreak} Days
             </div>
 
-            <div className="w-16 h-16 rounded-full border border-[#8B5CF6] flex items-center justify-center text-2xl font-extrabold text-white bg-slate-900 mt-4 mb-2">
+            <div id="rank-matrix" className="w-16 h-16 rounded-full border border-[#8B5CF6] flex items-center justify-center text-2xl font-extrabold text-white bg-slate-900 mt-4 mb-2">
               {profile.auraRank}
             </div>
             <h3 className="font-extrabold text-white text-base">{profile.name}</h3>
             <p className="text-[10px] text-slate-400 uppercase tracking-widest">{profile.equippedTitle}</p>
 
-            <div className="w-full mt-6 space-y-1.5 text-left text-xs font-semibold">
+            <div id="xp-leveling" className="w-full mt-6 space-y-1.5 text-left text-xs font-semibold">
               <div className="flex justify-between text-slate-300">
                 <span>Lvl {profile.currentLevel}</span>
                 <span>{xpPercent}%</span>
@@ -182,13 +185,16 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex justify-center w-full mt-4 text-xs pt-4 border-t border-slate-800/80">
-              <span className="text-slate-400">Shields: <strong className="text-[#8B5CF6]">{profile.auraShields}</strong></span>
+            <div className="flex justify-center w-full mt-4 text-xs pt-4 border-t border-slate-800/80 flex-col items-center space-y-2">
+              <span id="shields-vault" className="text-slate-400">Shields: <strong className="text-[#8B5CF6]">{profile.auraShields}</strong></span>
+              <Link id="assessment-portal" href="/assessment" className="text-[10px] font-bold text-[#8B5CF6] hover:underline mt-1 block">
+                Entrance Portal (Retake Assessment)
+              </Link>
             </div>
           </div>
 
           {/* Aura Companion Widget */}
-          <div className="glass-panel p-6 border-l-4 border-l-[#8B5CF6] space-y-3 bg-gradient-to-r from-slate-950/20 to-slate-900/40">
+          <div id="weakness-alerts" className="glass-panel p-6 border-l-4 border-l-[#8B5CF6] space-y-3 bg-gradient-to-r from-slate-950/20 to-slate-900/40">
             <div className="text-[10px] font-bold text-[#8B5CF6] uppercase tracking-widest flex items-center">
               <Compass className="w-4 h-4 mr-1.5" /> Aura Companion
             </div>
@@ -198,7 +204,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Daily Reward Chest */}
-          <div className="glass-panel p-6 space-y-4">
+          <div id="chest-tracker" className="glass-panel p-6 space-y-4">
             <h4 className="font-bold text-white text-xs uppercase tracking-wider flex items-center"><Gift className="w-4 h-4 mr-1.5 text-amber-400" /> Daily Chest Tracker</h4>
             <div className="grid grid-cols-7 gap-1">
               {[1, 2, 3, 4, 5, 6, 7].map((d) => {
@@ -216,13 +222,46 @@ export default function DashboardPage() {
               Claim Daily XP
             </button>
           </div>
+
+          {/* Gate of Trials Weekly Boss Card */}
+          {activeBoss && (
+            <div id="boss-trials" className="glass-panel p-6 space-y-4 border-l-4 border-l-red-500 bg-gradient-to-r from-slate-950/20 to-red-950/10">
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest">Gate of Trials (Weekly Boss)</span>
+                  <h4 className="text-white font-extrabold text-sm mt-1">{activeBoss.boss.name}</h4>
+                </div>
+                <span className="text-xl">👹</span>
+              </div>
+              <p className="text-slate-400 text-[11px] leading-relaxed">{activeBoss.boss.description}</p>
+              
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-slate-300">Boss HP</span>
+                  <span className="text-red-400 font-bold">{activeBoss.currentHP} / {activeBoss.boss.maxHP}</span>
+                </div>
+                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-red-600 transition-all duration-500" 
+                    style={{ width: `${Math.round((activeBoss.currentHP / activeBoss.boss.maxHP) * 100)}%` }} 
+                  />
+                </div>
+              </div>
+
+              {new Date().getDay() >= 5 && activeBoss.currentHP > 0 && (
+                <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] text-red-400 font-bold animate-pulse text-center">
+                  ⚠️ Weekend Enraged Phase Active! Maximize Focus Blocks!
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Column - Quests & Projects */}
         <div className="md:col-span-2 space-y-6">
           
           {/* Active Quests */}
-          <div className="glass-panel p-8">
+          <div id="gameplay-board" className="glass-panel p-8">
             <h2 className="text-xl font-bold text-white mb-6">Quest Matrix (7 Daily Tasks)</h2>
             <div className="space-y-4">
               {quests.map((uq) => (
@@ -238,6 +277,7 @@ export default function DashboardPage() {
                       <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">Completed</span>
                     ) : (
                       <button 
+                        id="journal-qc"
                         onClick={() => setSelectedQuestForVerify(uq)}
                         className="px-4 py-1.5 rounded-lg bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white text-xs font-bold transition shadow-md shadow-[#8B5CF6]/20"
                       >
