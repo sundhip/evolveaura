@@ -50,7 +50,33 @@ export const getLatestAssessment = async (req: AuthRequest, res: Response) => {
       where: { userId: req.userId! },
       orderBy: { completedAt: 'desc' }
     });
-    res.json(assessment);
+    if (!assessment) return res.status(404).json({ error: 'No assessment found' });
+
+    const explanations: Record<string, string> = {
+      Scholar: "Your learning efficiency, strategy, or concentration capacity is currently limiting your growth matrix.",
+      Warrior: "Your sleep patterns, physical energy level, or daily disciplines are acting as a disciplines constraint.",
+      Sage: "Your mindfulness, screen detox habit, or cognitive stress regulation is currently a primary constraint.",
+      Creator: "Your curiosity exploration, project outputs, or consistent creative work shows high friction."
+    };
+
+    const subskills: Record<string, string> = {
+      Scholar: "Deep Work Concentration",
+      Warrior: "Sleep & Routine Optimization",
+      Sage: "Anxiety & Screen Detox Regulation",
+      Creator: "Creative Output Consistency"
+    };
+
+    const path = assessment.bottleneck || "Scholar";
+
+    res.json({
+      assessment,
+      bottlenecks: {
+        explanation: explanations[path] || explanations.Scholar,
+        primary: {
+          subSkill: subskills[path] || subskills.Scholar
+        }
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
