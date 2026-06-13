@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, X, Sparkles, AlertCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, X, Sparkles } from 'lucide-react';
 
 interface TourProps {
   bottleneck: string;
@@ -80,7 +80,21 @@ const STEPS = [
 export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
   const [step, setStep] = useState(1);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [viewport, setViewport] = useState({ width: 1200, height: 800 });
 
+  // Watch viewport size on the client
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleResize = () => {
+        setViewport({ width: window.innerWidth, height: window.innerHeight });
+      };
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  // Update target coordinates when step changes
   useEffect(() => {
     const currentStep = STEPS[step - 1];
     if (!currentStep.targetId) {
@@ -124,6 +138,11 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
   }, [step]);
 
   const getCardStyle = () => {
+    const cardWidth = 380;
+    const cardHeight = 240;
+    const padding = 20;
+
+    // Centered modal styling if no target element exists
     if (!coords) {
       return {
         top: '50%',
@@ -133,33 +152,32 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
       };
     }
 
-    const padding = 20;
-    const cardWidth = 380;
-    const cardHeight = 240;
-    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-
-    const spaceBelow = viewportHeight - (coords.top + coords.height);
+    const spaceBelow = viewport.height - (coords.top + coords.height);
     const spaceAbove = coords.top;
-    const spaceRight = viewportWidth - (coords.left + coords.width);
+    const spaceRight = viewport.width - (coords.left + coords.width);
     const spaceLeft = coords.left;
 
-    let top = 0;
-    let left = 0;
+    let centerX = 0;
+    let centerY = 0;
 
     if (spaceBelow > cardHeight + padding) {
-      top = coords.top + coords.height + padding;
-      left = Math.max(padding, Math.min(viewportWidth - cardWidth - padding, coords.left + (coords.width / 2) - (cardWidth / 2)));
+      // Place card below target element
+      centerY = coords.top + coords.height + padding + cardHeight / 2;
+      centerX = coords.left + coords.width / 2;
     } else if (spaceAbove > cardHeight + padding) {
-      top = coords.top - cardHeight - padding;
-      left = Math.max(padding, Math.min(viewportWidth - cardWidth - padding, coords.left + (coords.width / 2) - (cardWidth / 2)));
+      // Place card above target element
+      centerY = coords.top - padding - cardHeight / 2;
+      centerX = coords.left + coords.width / 2;
     } else if (spaceRight > cardWidth + padding) {
-      top = Math.max(padding, Math.min(viewportHeight - cardHeight - padding, coords.top + (coords.height / 2) - (cardHeight / 2)));
-      left = coords.left + coords.width + padding;
+      // Place card to the right of target element
+      centerY = coords.top + coords.height / 2;
+      centerX = coords.left + coords.width + padding + cardWidth / 2;
     } else if (spaceLeft > cardWidth + padding) {
-      top = Math.max(padding, Math.min(viewportHeight - cardHeight - padding, coords.top + (coords.height / 2) - (cardHeight / 2)));
-      left = coords.left - cardWidth - padding;
+      // Place card to the left of target element
+      centerY = coords.top + coords.height / 2;
+      centerX = coords.left - padding - cardWidth / 2;
     } else {
+      // Centered fallback
       return {
         top: '50%',
         left: '50%',
@@ -168,10 +186,15 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
       };
     }
 
+    // Prevent card from bleeding off viewport boundaries
+    const margin = padding;
+    centerX = Math.max(margin + cardWidth / 2, Math.min(viewport.width - margin - cardWidth / 2, centerX));
+    centerY = Math.max(margin + cardHeight / 2, Math.min(viewport.height - margin - cardHeight / 2, centerY));
+
     return {
-      top: `${top}px`,
-      left: `${left}px`,
-      transform: 'none',
+      top: `${centerY}px`,
+      left: `${centerX}px`,
+      transform: 'translate(-50%, -50%)',
       position: 'fixed' as const
     };
   };
