@@ -40,6 +40,12 @@ model Profile {
   auraRank        String   @default("E")
   avatar          String   @default("default_avatar")
   equippedTitle   String   @default("Novice Evolver")
+  statINT         Int      @default(10)
+  statSTR         Int      @default(10)
+  statVIT         Int      @default(10)
+  statWIS         Int      @default(10)
+  statAGI         Int      @default(10)
+  unallocatedPoints Int    @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -113,10 +119,13 @@ model UserBossProgress {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bossId      String
   boss        Boss      @relation(fields: [bossId], references: [id], onDelete: Cascade)
-  currentHP   Int
-  defeated    Boolean   @default(false)
-  unlockedAt  DateTime  @default(now())
-  defeatedAt  DateTime?
+  currentHP      Int
+  defeated       Boolean   @default(false)
+  selectedTier   Int       @default(0) // 0 = none, 1 = Minor Quantum, 2 = Apex Titan, 3 = Void Overlord
+  questActive    Boolean   @default(false)
+  questCompleted Boolean   @default(false)
+  unlockedAt     DateTime  @default(now())
+  defeatedAt     DateTime?
 }
 
 model PersonalProject {

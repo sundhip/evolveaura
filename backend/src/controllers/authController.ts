@@ -102,3 +102,96 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const allocateStatPoint = async (req: AuthRequest, res: Response) => {
+  try {
+    const { statName } = req.body;
+    if (!['INT', 'STR', 'VIT', 'WIS', 'AGI'].includes(statName)) {
+      return res.status(400).json({ error: 'Invalid stat name' });
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId: req.userId! }
+    });
+
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    if (profile.unallocatedPoints <= 0) {
+      return res.status(400).json({ error: 'No unallocated points available' });
+    }
+
+    const updateData: any = {
+      unallocatedPoints: { decrement: 1 }
+    };
+
+    const fieldName = `stat${statName}`;
+    updateData[fieldName] = { increment: 1 };
+
+    const updatedProfile = await prisma.profile.update({
+      where: { userId: req.userId! },
+      data: updateData
+    });
+
+    // Balanced Growth check
+    const stats = [
+      updatedProfile.statINT,
+      updatedProfile.statSTR,
+      updatedProfile.statVIT,
+      updatedProfile.statWIS,
+      updatedProfile.statAGI
+    ];
+    const maxStat = Math.max(...stats);
+    const minStat = Math.min(...stats);
+    const isBalanced = (maxStat - minStat) <= 3;
+
+    res.json({ profile: updatedProfile, isBalanced });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const ascendRank = async (req: AuthRequest, res: Response) => {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: { userId: req.userId! }
+    });
+
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+    // Verify stats balance
+    const stats = [
+      profile.statINT,
+      profile.statSTR,
+      profile.statVIT,
+      profile.statWIS,
+      profile.statAGI
+    ];
+    const maxStat = Math.max(...stats);
+    const minStat = Math.min(...stats);
+    const isBalanced = (maxStat - minStat) <= 3;
+
+    if (!isBalanced) {
+      return res.status(400).json({ error: 'Growth is unbalanced. Your lowest stat cannot be more than 3 levels behind your highest stat.' });
+    }
+
+    // Determine next rank
+    const ranks = ['E', 'D', 'C', 'B', 'A', 'S'];
+    const idx = ranks.indexOf(profile.auraRank);
+    let nextRank = profile.auraRank;
+    if (idx !== -1 && idx < ranks.length - 1) {
+      nextRank = ranks[idx + 1];
+    }
+
+    const updatedProfile = await prisma.profile.update({
+      where: { userId: req.userId! },
+      data: {
+        auraRank: nextRank,
+        equippedTitle: `Aura ${nextRank} Sentinel`,
+        currentLevel: { increment: 1 }
+      }
+    });
+
+    res.json({ success: true, profile: updatedProfile });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
