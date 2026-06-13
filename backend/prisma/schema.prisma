@@ -21,7 +21,6 @@ model User {
   xpLogs        XPLog[]
   bossProgress  UserBossProgress[]
   projects      PersonalProject[]
-  skills        SkillNode[]
 }
 
 model Profile {
@@ -33,7 +32,6 @@ model Profile {
   primaryGoal     String
   currentLevel    Int      @default(1)
   currentXP       Int      @default(0)
-  auraGold        Int      @default(0)
   auraShields     Int      @default(0) // Streak protection count
   currentStreak   Int      @default(0)
   longestStreak   Int      @default(0)
@@ -42,7 +40,6 @@ model Profile {
   auraRank        String   @default("E")
   avatar          String   @default("default_avatar")
   equippedTitle   String   @default("Novice Evolver")
-  unlockedRelics  Json     @default("[]") // cosmetic IDs
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -83,7 +80,6 @@ model Quest {
   path             String      // SCHOLAR, WARRIOR, SAGE, CREATOR, MAIN, BOSS, BONUS
   difficulty       String      // EASY, MEDIUM, HARD, ELITE
   xpReward         Int
-  goldReward       Int
   verificationType String      // TIMER, WALKING, REFLECTION, ACTION
   userQuests       UserQuest[]
 }
@@ -107,7 +103,6 @@ model Boss {
   maxHP       Int
   badgeReward String
   xpReward    Int
-  goldReward  Int
   spriteName  String
   userBosses  UserBossProgress[]
 }
@@ -132,15 +127,6 @@ model PersonalProject {
   progress  Float    @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model SkillNode {
-  id       String @id @default(uuid())
-  userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  path     String
-  nodeName String
-  level    Int    @default(0)
 }
 
 model XPLog {

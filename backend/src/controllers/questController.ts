@@ -39,7 +39,6 @@ export const getDailyQuests = async (req: AuthRequest, res: Response) => {
             path: dynChallenge.path,
             difficulty: "MEDIUM",
             xpReward: 100,
-            goldReward: 30,
             verificationType: "ACTION"
           }
         });
@@ -95,7 +94,6 @@ export const verifyQuest = async (req: AuthRequest, res: Response) => {
     // Award rewards
     const profile = uq.user.profile!;
     let xpAwarded = uq.quest.xpReward;
-    let goldAwarded = uq.quest.goldReward;
 
     let level = profile.currentLevel;
     let xp = profile.currentXP + xpAwarded;
@@ -114,7 +112,6 @@ export const verifyQuest = async (req: AuthRequest, res: Response) => {
       data: {
         currentXP: xp,
         currentLevel: level,
-        auraGold: profile.auraGold + goldAwarded,
         currentStreak: { increment: 1 }
       }
     });
@@ -127,7 +124,7 @@ export const verifyQuest = async (req: AuthRequest, res: Response) => {
       }
     });
 
-    res.json({ completed: true, xpGained: xpAwarded, goldGained: goldAwarded, leveledUp, level });
+    res.json({ completed: true, xpGained: xpAwarded, leveledUp, level });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -141,14 +138,37 @@ export const claimDailyReward = async (req: AuthRequest, res: Response) => {
     const streak = profile.currentStreak;
     const rewards = [20, 30, 50, 75, 100, 150, 250];
     const rewardIndex = streak % 7;
-    const goldGained = rewards[rewardIndex];
+    const xpGained = rewards[rewardIndex];
+
+    let level = profile.currentLevel;
+    let xp = profile.currentXP + xpGained;
+    let required = Math.round(100 * Math.pow(level, 1.5));
+    let leveledUp = false;
+
+    while (xp >= required) {
+      xp -= required;
+      level += 1;
+      leveledUp = true;
+      required = Math.round(100 * Math.pow(level, 1.5));
+    }
 
     await prisma.profile.update({
       where: { userId: req.userId! },
-      data: { auraGold: { increment: goldGained } }
+      data: {
+        currentXP: xp,
+        currentLevel: level
+      }
     });
 
-    res.json({ goldGained, newGold: profile.auraGold + goldGained });
+    await prisma.xPLog.create({
+      data: {
+        userId: req.userId!,
+        xpGained,
+        source: "Daily Login Chest Reward"
+      }
+    });
+
+    res.json({ xpGained, newXP: xp, leveledUp, level });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

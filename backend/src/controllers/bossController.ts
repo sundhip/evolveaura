@@ -57,7 +57,6 @@ export const attackBoss = async (req: AuthRequest, res: Response) => {
       await prisma.profile.update({
         where: { userId: req.userId! },
         data: {
-          auraGold: { increment: progress.boss.goldReward },
           currentXP: { increment: progress.boss.xpReward }
         }
       });

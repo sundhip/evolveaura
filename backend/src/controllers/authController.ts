@@ -21,7 +21,6 @@ export const register = async (req: AuthRequest, res: Response) => {
             name,
             role: role || 'PROFESSIONAL',
             primaryGoal: primaryGoal || 'Balanced Growth',
-            auraGold: 100, // start gold
             auraShields: 0
           }
         }
@@ -71,8 +70,7 @@ export const googleLogin = async (req: AuthRequest, res: Response) => {
             create: {
               name,
               role: 'PROFESSIONAL',
-              primaryGoal: 'Balanced Growth',
-              auraGold: 100
+              primaryGoal: 'Balanced Growth'
             }
           }
         },
@@ -97,70 +95,9 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      include: { profile: true, skills: true, projects: true }
+      include: { profile: true, projects: true }
     });
     res.json(user);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const buyRelic = async (req: AuthRequest, res: Response) => {
-  try {
-    const { relicId, cost, type, name } = req.body; // e.g. "Focus Master" title
-    const profile = await prisma.profile.findUnique({ where: { userId: req.userId! } });
-    if (!profile) return res.status(404).json({ error: 'Profile not found' });
-    if (profile.auraGold < cost) return res.status(400).json({ error: 'Insufficient Aura Coins' });
-
-    const relics = JSON.parse(JSON.stringify(profile.unlockedRelics || [])) as any[];
-    if (relics.some(r => r.id === relicId)) return res.status(400).json({ error: 'Item already unlocked' });
-
-    relics.push({ id: relicId, name, type });
-
-    const updated = await prisma.profile.update({
-      where: { userId: req.userId! },
-      data: {
-        auraGold: profile.auraGold - cost,
-        unlockedRelics: relics,
-        equippedTitle: type === 'title' ? name : profile.equippedTitle
-      }
-    });
-
-    res.json(updated);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const updateSkillTree = async (req: AuthRequest, res: Response) => {
-  try {
-    const { path, nodeName } = req.body;
-    const profile = await prisma.profile.findUnique({ where: { userId: req.userId! } });
-    if (!profile) return res.status(404).json({ error: 'Profile not found' });
-
-    // Deduct skill point (can be level minus spent skills)
-    const spentSkills = await prisma.skillNode.count({ where: { userId: req.userId! } });
-    const availablePoints = profile.currentLevel - spentSkills;
-
-    if (availablePoints <= 0) return res.status(400).json({ error: 'No Skill Points available' });
-
-    const existing = await prisma.skillNode.findFirst({
-      where: { userId: req.userId!, path, nodeName }
-    });
-
-    if (existing) {
-      await prisma.skillNode.update({
-        where: { id: existing.id },
-        data: { level: { increment: 1 } }
-      });
-    } else {
-      await prisma.skillNode.create({
-        data: { userId: req.userId!, path, nodeName, level: 1 }
-      });
-    }
-
-    const skills = await prisma.skillNode.findMany({ where: { userId: req.userId! } });
-    res.json({ skills, availablePoints: availablePoints - 1 });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

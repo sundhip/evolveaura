@@ -6,6 +6,7 @@ import assessmentRoutes from './routes/assessmentRoutes';
 import questRoutes from './routes/questRoutes';
 import bossRoutes from './routes/bossRoutes';
 import projectRoutes from './routes/projectRoutes';
+import subjectRoutes from './routes/subjectRoutes';
 import { errorHandler } from './middleware/errorMiddleware';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use('/api/assessment', assessmentRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/bosses', bossRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/subjects', subjectRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });

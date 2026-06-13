@@ -56,7 +56,7 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
               </p>
               <div className="p-4 bg-slate-950/40 border border-slate-800 rounded-xl text-left text-xs text-slate-400 space-y-2">
                 <p>• The system has calibrated daily quests to heal this bottleneck.</p>
-                <p>• Leveling up grants Skill Points to spend in your Evolution Tree.</p>
+                <p>• Leveling up unlocks higher difficulty levels and increases your standings.</p>
               </div>
               <button 
                 onClick={onComplete}

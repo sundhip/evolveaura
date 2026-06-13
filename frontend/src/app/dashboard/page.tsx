@@ -70,7 +70,7 @@ export default function DashboardPage() {
   const handleClaimReward = async () => {
     try {
       const res = await apiRequest('/quests/daily-reward/claim', { method: 'POST' });
-      alert(`🎉 Reward claimed! +${res.goldGained} Aura Coins.`);
+      alert(`🎉 Reward claimed! +${res.xpGained} XP.`);
       loadData();
     } catch (e: any) {
       alert(e.message || "Already claimed today");
@@ -98,7 +98,7 @@ export default function DashboardPage() {
         method: 'POST',
         body: JSON.stringify({ userQuestId: uqId, inputData: reflectionInput })
       });
-      alert(`🎉 Verified! Gained +${res.xpGained} XP and +${res.goldGained} Gold.`);
+      alert(`🎉 Verified! Gained +${res.xpGained} XP.`);
       setSelectedQuestForVerify(null);
       setReflectionInput('');
       loadData();
@@ -132,8 +132,7 @@ export default function DashboardPage() {
           <nav className="flex space-x-6 text-sm font-medium">
             <Link href="/dashboard" className="text-white">Dashboard</Link>
             <Link href="/focus" className="text-slate-400 hover:text-white">Focus</Link>
-            <Link href="/evolution" className="text-slate-400 hover:text-white">Evolution Tree</Link>
-            <Link href="/subjects" className="text-slate-400 hover:text-white">Subjects</Link>
+            <Link href="/subject-analysis" className="text-slate-400 hover:text-white">Subjects</Link>
             <Link href="/about" className="text-slate-400 hover:text-white">About</Link>
             <Link href="/faq" className="text-slate-400 hover:text-white">FAQ</Link>
           </nav>
@@ -177,8 +176,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex justify-between w-full mt-4 text-xs pt-4 border-t border-slate-800/80">
-              <span className="text-slate-400">Aura Gold: <strong className="text-amber-400">{profile.auraGold}</strong></span>
+            <div className="flex justify-center w-full mt-4 text-xs pt-4 border-t border-slate-800/80">
               <span className="text-slate-400">Shields: <strong className="text-[#8B5CF6]">{profile.auraShields}</strong></span>
             </div>
           </div>
@@ -208,8 +206,8 @@ export default function DashboardPage() {
                 );
               })}
             </div>
-            <button onClick={handleClaimReward} className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition">
-              Claim Daily Gold
+            <button onClick={handleClaimReward} className="w-full py-2 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#60A5FA] text-white text-xs font-bold transition">
+              Claim Daily XP
             </button>
           </div>
         </div>
