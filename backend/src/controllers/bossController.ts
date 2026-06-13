@@ -225,3 +225,26 @@ export const failBossQuest = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const startBossQuest = async (req: AuthRequest, res: Response) => {
+  try {
+    const progress = await prisma.userBossProgress.findFirst({
+      where: { userId: req.userId!, defeated: false }
+    });
+
+    if (!progress) return res.status(404).json({ error: 'No active boss found' });
+    if (progress.selectedTier === 0) {
+      return res.status(400).json({ error: 'No boss quest tier selected' });
+    }
+
+    const updated = await prisma.userBossProgress.update({
+      where: { id: progress.id },
+      data: { questActive: true },
+      include: { boss: true }
+    });
+
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -42,6 +42,13 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
     // Start weekend high-tempo battle synth music if applicable
     audioEngine.startBattleMusic();
 
+    // Call start endpoint to activate in DB
+    if (!isTrial) {
+      apiRequest('/bosses/start-quest', { method: 'POST' }).catch((e) => {
+        console.error("Failed to start boss quest in database:", e);
+      });
+    }
+
     triggerSystemAlert({
       type: 'BOSS_ENCOUNTER',
       title: isTrial ? `RANK UP TRIAL ENGAGED` : `BATTLE ENGAGED: TIER ${selectedTier}`,
@@ -247,6 +254,7 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
               strokeWidth="8"
               fill="transparent"
               strokeDasharray={703.7}
+              initial={{ strokeDashoffset: 703.7 }}
               animate={{ strokeDashoffset: 703.7 - (703.7 * progressPercent) / 100 }}
               transition={{ duration: 0.5, ease: 'linear' }}
             />
