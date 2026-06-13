@@ -9,6 +9,11 @@ import { Zap, ShieldCheck, Compass, Heart, Flame, Timer, Award, AlertCircle, Shi
 
 export default function DashboardPage() {
   const router = useRouter();
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/');
+  };
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [quests, setQuests] = useState<any[]>([]);
@@ -129,12 +134,13 @@ export default function DashboardPage() {
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="text-xl font-extrabold text-[#8B5CF6]">EVOLVE<span className="text-white">AURA</span></div>
-          <nav className="flex space-x-6 text-sm font-medium">
+          <nav className="flex space-x-6 text-sm font-medium items-center">
             <Link href="/dashboard" className="text-white">Dashboard</Link>
             <Link href="/focus" className="text-slate-400 hover:text-white">Focus</Link>
             <Link href="/subject-analysis" className="text-slate-400 hover:text-white">Subjects</Link>
             <Link href="/about" className="text-slate-400 hover:text-white">About</Link>
             <Link href="/faq" className="text-slate-400 hover:text-white">FAQ</Link>
+            <button onClick={handleSignOut} className="text-red-400 hover:text-red-300 font-bold transition cursor-pointer">Sign Out</button>
           </nav>
         </div>
       </header>
