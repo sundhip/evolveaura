@@ -1,107 +1,21 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowRight, ArrowLeft, X, Sparkles } from 'lucide-react';
 
+export interface TourStep {
+  targetId: string | null;
+  title: string;
+  description: string;
+  badge: string;
+}
+
 interface TourProps {
-  bottleneck: string;
+  steps: TourStep[];
   onComplete: () => void;
 }
 
-const STEPS = [
-  {
-    targetId: null,
-    title: "System Awakening",
-    description: "Welcome, Evolver. The EvolveAura system has scanned your digital signature. Let's calibrate your stabilization matrix to target real-world growth.",
-    badge: "Calibration Init"
-  },
-  {
-    targetId: "rank-matrix",
-    title: "Aura Rank Matrix",
-    description: "This is your current Rank standing (from E to S). Calibrated by your assessments, it dictates your status, unlocked quests, and difficulty settings.",
-    badge: "Evolution Status"
-  },
-  {
-    targetId: "xp-leveling",
-    title: "XP Stabilization Bar",
-    description: "Monitor your level and experience growth. Verify quests and complete study sessions to gain XP. Leveling up boosts your standing and rewards.",
-    badge: "Progression Module"
-  },
-  {
-    targetId: "shields-vault",
-    title: "Aura Shields Vault",
-    description: "Shields protect your consistency streak. If you are unable to log focus or finish quests on a busy day, a shield is automatically consumed to maintain your streak.",
-    badge: "Streak Protector"
-  },
-  {
-    targetId: "assessment-portal",
-    title: "Calibration Portal",
-    description: "Access the assessment portal here at any time to retake the diagnostic and recalibrate your focus path bottleneck.",
-    badge: "Recalibration Portal"
-  },
-  {
-    targetId: "focus-telemetry",
-    title: "Focus Mode Tab",
-    description: "Jump to the Focus section to run Pomodoro study timers. Every completed session plants a tree in your Forest and damages weekly bosses.",
-    badge: "Focus Module"
-  },
-  {
-    targetId: "subjects-grid",
-    title: "Subjects Analysis Tab",
-    description: "Review and rate your subject understanding, retention, problem-solving, and confidence. Keep academic disciplines stable.",
-    badge: "Subject Grid"
-  },
-  {
-    targetId: "about-nav-link",
-    title: "About Platform Tab",
-    description: "Learn more about EvolveAura's core self-regulated learning principles, path metrics, and psychological research models.",
-    badge: "Platform Overview"
-  },
-  {
-    targetId: "faq-nav-link",
-    title: "FAQ Support Tab",
-    description: "Read common questions and answers explaining streaks, shields, Pomodoro forest calculations, and boss fights.",
-    badge: "Support Hub"
-  },
-  {
-    targetId: "chest-tracker",
-    title: "Daily Login Tracker",
-    description: "Build your streak by signing in every day. Each consecutive day unlocks larger chests containing higher XP rewards.",
-    badge: "Daily Tracker"
-  },
-  {
-    targetId: "boss-trials",
-    title: "Gate of Trials (Weekly Boss)",
-    description: "Your digital distractions take shape as weekly raid bosses. Deal damage to them by completing Pomodoro timers and tasks.",
-    badge: "Habit Slayer"
-  },
-  {
-    targetId: "gameplay-board",
-    title: "Quest Matrix",
-    description: "Your daily directive consists of 7 personalized tasks tailored to heal your bottleneck. Complete and submit reflections to verify them.",
-    badge: "Daily Directive"
-  },
-  {
-    targetId: "distraction-stabilizer",
-    title: "Emergency Stabilizer",
-    description: "Feeling an overwhelming urge to scroll short-form feeds? Tap this emergency button immediately to start a guided box-breathing stabilizer.",
-    badge: "Crisis Stabilizer"
-  },
-  {
-    targetId: "aura-chatbot",
-    title: "Aura Assistant Bot",
-    description: "Got doubts about EvolveAura's mechanics, leveling, or quests? Click this bubble to chat with the built-in guide at any time!",
-    badge: "Platform Helper"
-  },
-  {
-    targetId: null,
-    title: "Evolution Matrix Calibrated",
-    description: "Calibration complete! You are now equipped to navigate the evolutionary matrix. Break the distraction cycles and level up in real life.",
-    badge: "Systems Online"
-  }
-];
-
-export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
+export default function AwakeningTour({ steps, onComplete }: TourProps) {
   const [step, setStep] = useState(1);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [viewport, setViewport] = useState({ width: 1200, height: 800 });
@@ -120,28 +34,40 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
 
   // Update target coordinates when step changes
   useEffect(() => {
-    const currentStep = STEPS[step - 1];
-    if (!currentStep.targetId) {
+    const currentStep = steps[step - 1];
+    if (!currentStep || !currentStep.targetId) {
       setCoords(null);
       return;
     }
 
     const el = document.getElementById(currentStep.targetId!);
     if (el) {
-      // Scroll the element into view exactly ONCE on step activation
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Check if the element is already visible in the viewport to avoid sticky header scroll glitches
+      const rect = el.getBoundingClientRect();
+      const isInViewport = 
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= viewport.height &&
+        rect.right <= viewport.width;
+
+      if (!isInViewport) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       
       const updateCoordinates = () => {
-        const rect = el.getBoundingClientRect();
-        setCoords({
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height
-        });
+        const r = el.getBoundingClientRect();
+        // Ignore zero-width/height rects during transitional loads
+        if (r.width > 0 && r.height > 0) {
+          setCoords({
+            top: r.top,
+            left: r.left,
+            width: r.width,
+            height: r.height
+          });
+        }
       };
       
-      // Synchronize coordinates immediately, and multiple times as smooth scroll settles
+      // Update coordinates immediately, and multiple times as smooth scrolling settles
       updateCoordinates();
       const t1 = setTimeout(updateCoordinates, 100);
       const t2 = setTimeout(updateCoordinates, 300);
@@ -160,7 +86,7 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
     } else {
       setCoords(null);
     }
-  }, [step]);
+  }, [step, steps, viewport]);
 
   const getCardStyle = () => {
     const cardWidth = 380;
@@ -224,10 +150,11 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
     };
   };
 
-  const currentStep = STEPS[step - 1];
+  const currentStep = steps[step - 1];
+  if (!currentStep) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-55">
       {/* SVG Spotlight Overlay */}
       <svg className="absolute inset-0 w-full h-full pointer-events-auto">
         <defs>
@@ -269,7 +196,7 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
             opacity: 1
           }}
           transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-          className="fixed border border-[#8B5CF6]/80 rounded-2xl shadow-[0_0_25px_rgba(139,92,246,0.35)] pointer-events-none z-50 bg-[#8B5CF6]/5"
+          className="fixed border border-[#8B5CF6]/80 rounded-2xl shadow-[0_0_25px_rgba(139,92,246,0.35)] pointer-events-none z-55 bg-[#8B5CF6]/5"
           style={{ position: 'fixed', top: 0, left: 0 }}
         />
       )}
@@ -278,7 +205,7 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
       <motion.div
         animate={getCardStyle()}
         transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-        className="fixed z-50 glass-panel p-6 w-[380px] bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl flex flex-col justify-between"
+        className="fixed z-55 glass-panel p-6 w-[380px] bg-slate-900/95 border border-slate-800 rounded-2xl shadow-2xl flex flex-col justify-between"
         style={{ minHeight: '230px' }}
       >
         <div className="space-y-3">
@@ -305,7 +232,7 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
 
         <div className="flex justify-between items-center pt-4 border-t border-slate-800/60 mt-4">
           <span className="text-[10px] text-slate-500 font-bold">
-            Step {step} of {STEPS.length}
+            Step {step} of {steps.length}
           </span>
 
           <div className="flex space-x-2">
@@ -318,7 +245,7 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
               </button>
             )}
 
-            {step < STEPS.length ? (
+            {step < steps.length ? (
               <button
                 onClick={() => setStep(step + 1)}
                 className="px-4 py-1.5 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white text-xs font-bold transition flex items-center cursor-pointer"
@@ -330,7 +257,7 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
                 onClick={onComplete}
                 className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#60A5FA] text-white text-xs font-bold transition flex items-center cursor-pointer"
               >
-                Awaken Matrix <Sparkles className="w-3.5 h-3.5 ml-1" />
+                Done <Sparkles className="w-3.5 h-3.5 ml-1" />
               </button>
             )}
           </div>

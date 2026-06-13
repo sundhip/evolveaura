@@ -130,7 +130,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0F172A] pb-12 text-slate-300">
-      {showTour && <AwakeningTour bottleneck={profile?.auraRank || 'E'} onComplete={() => { setShowTour(false); localStorage.setItem('hasCompletedTour', 'true'); }} />}
+      {showTour && <AwakeningTour steps={DASHBOARD_TOUR_STEPS} onComplete={() => { setShowTour(false); localStorage.setItem('hasCompletedTour', 'true'); }} />}
 
       {/* Nav Header */}
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-50">
@@ -140,8 +140,6 @@ export default function DashboardPage() {
             <Link href="/dashboard" className="text-white">Dashboard</Link>
             <Link id="focus-telemetry" href="/focus" className="text-slate-400 hover:text-white">Focus</Link>
             <Link id="subjects-grid" href="/subject-analysis" className="text-slate-400 hover:text-white">Subjects</Link>
-            <Link id="about-nav-link" href="/about" className="text-slate-400 hover:text-white">About</Link>
-            <Link id="faq-nav-link" href="/faq" className="text-slate-400 hover:text-white">FAQ</Link>
             <button onClick={() => setShowTour(true)} className="text-slate-400 hover:text-white font-medium transition cursor-pointer">Tour</button>
             <button onClick={handleSignOut} className="text-red-400 hover:text-red-300 font-bold transition cursor-pointer">Sign Out</button>
           </nav>
@@ -376,3 +374,84 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+const DASHBOARD_TOUR_STEPS = [
+  {
+    targetId: null,
+    title: "System Awakening",
+    description: "Welcome, Evolver. Let's calibrate your stabilization matrix to target real-world growth.",
+    badge: "Calibration Init"
+  },
+  {
+    targetId: "rank-matrix",
+    title: "Aura Rank Matrix",
+    description: "This is your current Rank standing (from E to S). Calibrated by your assessments, it dictates your status, unlocked quests, and difficulty settings.",
+    badge: "Evolution Status"
+  },
+  {
+    targetId: "xp-leveling",
+    title: "XP Stabilization Bar",
+    description: "Monitor your level and experience growth. Verify quests and complete study sessions to gain XP. Leveling up boosts your standing and rewards.",
+    badge: "Progression Module"
+  },
+  {
+    targetId: "shields-vault",
+    title: "Aura Shields Vault",
+    description: "Shields protect your consistency streak. If you are unable to log focus or finish quests on a busy day, a shield is automatically consumed to maintain your streak.",
+    badge: "Streak Protector"
+  },
+  {
+    targetId: "assessment-portal",
+    title: "Calibration Portal",
+    description: "Access the assessment portal here at any time to retake the diagnostic and recalibrate your focus path bottleneck.",
+    badge: "Recalibration Portal"
+  },
+  {
+    targetId: "focus-telemetry",
+    title: "Focus Mode Tab",
+    description: "Jump to the Focus section to run Pomodoro study timers. Every completed session plants a tree in your Forest and damages weekly bosses.",
+    badge: "Focus Module"
+  },
+  {
+    targetId: "subjects-grid",
+    title: "Subjects Analysis Tab",
+    description: "Review and rate your subject understanding, retention, problem-solving, and confidence. Keep academic disciplines stable.",
+    badge: "Subject Grid"
+  },
+  {
+    targetId: "chest-tracker",
+    title: "Daily Login Tracker",
+    description: "Build your streak by signing in every day. Each consecutive day unlocks larger chests containing higher XP rewards.",
+    badge: "Daily Tracker"
+  },
+  {
+    targetId: "boss-trials",
+    title: "Gate of Trials (Weekly Boss)",
+    description: "Your digital distractions take shape as weekly raid bosses. Deal damage to them by completing Pomodoro timers and tasks.",
+    badge: "Habit Slayer"
+  },
+  {
+    targetId: "gameplay-board",
+    title: "Quest Matrix",
+    description: "Your daily directive consists of 7 personalized tasks tailored to heal your bottleneck. Complete and submit reflections to verify them.",
+    badge: "Daily Directive"
+  },
+  {
+    targetId: "distraction-stabilizer",
+    title: "Emergency Stabilizer",
+    description: "Feeling an overwhelming urge to scroll short-form feeds? Tap this emergency button immediately to start a guided box-breathing stabilizer.",
+    badge: "Crisis Stabilizer"
+  },
+  {
+    targetId: "aura-chatbot",
+    title: "Aura Assistant Bot",
+    description: "Got doubts about EvolveAura's mechanics, leveling, or quests? Click this bubble to chat with the built-in guide at any time!",
+    badge: "Platform Helper"
+  },
+  {
+    targetId: null,
+    title: "Evolution Matrix Calibrated",
+    description: "Calibration complete! You are now equipped to navigate the evolutionary matrix. Break the distraction cycles and level up in real life.",
+    badge: "Systems Online"
+  }
+];

@@ -1,22 +1,51 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Zap, Compass, Heart } from 'lucide-react';
+import AwakeningTour from '../components/AwakeningTour';
 
 export default function LandingPage() {
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    const completed = localStorage.getItem('hasCompletedLandingTour');
+    if (!completed) {
+      setShowTour(true);
+    }
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col justify-between items-center px-4 py-8">
+    <div className="min-h-screen flex flex-col justify-between items-center px-4 py-8 bg-[#0F172A]">
+      {showTour && (
+        <AwakeningTour 
+          steps={LANDING_TOUR_STEPS} 
+          onComplete={() => { 
+            setShowTour(false); 
+            localStorage.setItem('hasCompletedLandingTour', 'true'); 
+          }} 
+        />
+      )}
+
       {/* Header */}
       <div className="w-full max-w-6xl flex justify-between items-center py-4">
         <div className="text-2xl font-extrabold tracking-wider text-[#8B5CF6]">
           EVOLVE<span className="text-white">AURA</span>
         </div>
-        <div className="flex space-x-4">
-          <Link href="/login" className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium border border-slate-700 transition duration-300">
+        <div className="flex items-center space-x-6">
+          <Link id="landing-about" href="/about" className="text-slate-400 hover:text-white text-sm font-semibold transition">
+            About
+          </Link>
+          <Link id="landing-faq" href="/faq" className="text-slate-400 hover:text-white text-sm font-semibold transition">
+            FAQ
+          </Link>
+          <button onClick={() => setShowTour(true)} className="text-slate-400 hover:text-white text-sm font-semibold transition cursor-pointer">
+            Tour
+          </button>
+          <Link id="landing-signin" href="/login" className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium border border-slate-700 transition duration-300">
             Sign In
           </Link>
-          <Link href="/register" className="px-5 py-2 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-medium transition duration-300">
+          <Link id="landing-signup" href="/register" className="px-5 py-2 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-medium transition duration-300">
             Sign Up
           </Link>
         </div>
@@ -99,3 +128,42 @@ export default function LandingPage() {
     </div>
   );
 }
+
+const LANDING_TOUR_STEPS = [
+  {
+    targetId: null,
+    title: "Welcome to EvolveAura",
+    description: "Welcome! EvolveAura is a digital detox and stabilization platform designed to help you replace short-form media habits with real-world growth and psychological evolution.",
+    badge: "EvolveAura Intro"
+  },
+  {
+    targetId: "landing-about",
+    title: "About Platform",
+    description: "Learn about EvolveAura's core paths: Scholar, Warrior, Sage, and Creator. Read our self-regulated learning and psychological research foundations here.",
+    badge: "Platform Info"
+  },
+  {
+    targetId: "landing-faq",
+    title: "Frequently Asked Questions",
+    description: "Find structured answers explaining streaks, shields, Pomodoro forest calculations, and Boss habits.",
+    badge: "Support Hub"
+  },
+  {
+    targetId: "landing-signin",
+    title: "Access Core Matrix",
+    description: "Already registered? Click Sign In to load your profile, manage active quests, and resume your evolutionary stats.",
+    badge: "Sign In Portal"
+  },
+  {
+    targetId: "landing-signup",
+    title: "Begin Your Evolution",
+    description: "New to the platform? Click Sign Up to complete onboarding, calibrate your assessment, and unlock your personal growth dashboard.",
+    badge: "Registration Portal"
+  },
+  {
+    targetId: null,
+    title: "Calibrate Your Aura",
+    description: "Ready to proceed? Register a new account or sign in to begin your digital detox journey!",
+    badge: "Systems Ready"
+  }
+];
