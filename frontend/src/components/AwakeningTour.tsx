@@ -126,39 +126,40 @@ export default function AwakeningTour({ bottleneck, onComplete }: TourProps) {
       return;
     }
 
-    const updateCoordinates = () => {
-      const el = document.getElementById(currentStep.targetId!);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        const checkRect = () => {
-          const rect = el.getBoundingClientRect();
-          setCoords({
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height
-          });
-        };
-        
-        checkRect();
-        const timeoutId = setTimeout(checkRect, 300);
-        return () => clearTimeout(timeoutId);
-      } else {
-        setCoords(null);
-      }
-    };
-
-    const cleanup = updateCoordinates();
-    
-    window.addEventListener('resize', updateCoordinates);
-    window.addEventListener('scroll', updateCoordinates);
-    
-    return () => {
-      if (cleanup) cleanup();
-      window.removeEventListener('resize', updateCoordinates);
-      window.removeEventListener('scroll', updateCoordinates);
-    };
+    const el = document.getElementById(currentStep.targetId!);
+    if (el) {
+      // Scroll the element into view exactly ONCE on step activation
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      const updateCoordinates = () => {
+        const rect = el.getBoundingClientRect();
+        setCoords({
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height
+        });
+      };
+      
+      // Synchronize coordinates immediately, and multiple times as smooth scroll settles
+      updateCoordinates();
+      const t1 = setTimeout(updateCoordinates, 100);
+      const t2 = setTimeout(updateCoordinates, 300);
+      const t3 = setTimeout(updateCoordinates, 600);
+      
+      window.addEventListener('resize', updateCoordinates);
+      window.addEventListener('scroll', updateCoordinates);
+      
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        window.removeEventListener('resize', updateCoordinates);
+        window.removeEventListener('scroll', updateCoordinates);
+      };
+    } else {
+      setCoords(null);
+    }
   }, [step]);
 
   const getCardStyle = () => {
