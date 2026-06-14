@@ -32,61 +32,78 @@ export default function AwakeningTour({ steps, onComplete }: TourProps) {
     }
   }, []);
 
-  // Update target coordinates when step changes
+  // Update target coordinates when step changes with polling retries
   useEffect(() => {
+    let active = true;
     const currentStep = steps[step - 1];
     if (!currentStep || !currentStep.targetId) {
       setCoords(null);
       return;
     }
 
-    const el = document.getElementById(currentStep.targetId!);
-    if (el) {
-      // Check if the element is already visible in the viewport to avoid sticky header scroll glitches
-      const rect = el.getBoundingClientRect();
-      const isInViewport = 
-        rect.top >= 0 &&
-        rect.left >= 0 &&
-        rect.bottom <= viewport.height &&
-        rect.right <= viewport.width;
-
-      if (!isInViewport) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      
-      const updateCoordinates = () => {
-        const r = el.getBoundingClientRect();
-        // Ignore zero-width/height rects during transitional loads
-        if (r.width > 0 && r.height > 0) {
-          setCoords({
-            top: r.top,
-            left: r.left,
-            width: r.width,
-            height: r.height
-          });
-        }
-      };
-      
-      // Update coordinates immediately, and multiple times as smooth scrolling settles
-      updateCoordinates();
-      const t1 = setTimeout(updateCoordinates, 100);
-      const t2 = setTimeout(updateCoordinates, 300);
-      const t3 = setTimeout(updateCoordinates, 600);
-      
-      window.addEventListener('resize', updateCoordinates);
-      window.addEventListener('scroll', updateCoordinates);
-      
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        window.removeEventListener('resize', updateCoordinates);
-        window.removeEventListener('scroll', updateCoordinates);
-      };
-    } else {
-      setCoords(null);
+    let selector = currentStep.targetId!;
+    if (!selector.startsWith('#') && !selector.startsWith('.')) {
+      selector = `#${selector}`;
     }
-  }, [step, steps, viewport]);
+
+    let hasScrolled = false;
+
+    const track = () => {
+      if (!active) return;
+      const el = document.querySelector(selector);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        
+        // Scroll into view once if not in viewport
+        if (!hasScrolled && rect.width > 0 && rect.height > 0) {
+          const isInViewport = 
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= window.innerHeight &&
+            rect.right <= window.innerWidth;
+
+          if (!isInViewport) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          hasScrolled = true;
+        }
+
+        if (rect.width > 0 && rect.height > 0) {
+          setCoords(prev => {
+            if (prev &&
+                Math.abs(prev.top - rect.top) < 2 &&
+                Math.abs(prev.left - rect.left) < 2 &&
+                Math.abs(prev.width - rect.width) < 2 &&
+                Math.abs(prev.height - rect.height) < 2) {
+              return prev;
+            }
+            return {
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height
+            };
+          });
+        } else {
+          setCoords(prev => prev === null ? null : null);
+        }
+      } else {
+        setCoords(prev => prev === null ? null : null);
+      }
+    };
+
+    track();
+    const interval = setInterval(track, 150);
+
+    // Also track on window resize for immediate responsiveness
+    window.addEventListener('resize', track);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+      window.removeEventListener('resize', track);
+    };
+  }, [step, steps]);
 
   const getCardStyle = () => {
     const cardWidth = 380;

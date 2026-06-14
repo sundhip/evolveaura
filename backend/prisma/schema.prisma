@@ -21,6 +21,7 @@ model User {
   xpLogs        XPLog[]
   bossProgress  UserBossProgress[]
   projects      PersonalProject[]
+  shadows       ShadowSoldier[]
 }
 
 model Profile {
@@ -46,6 +47,19 @@ model Profile {
   statWIS         Int      @default(10)
   statAGI         Int      @default(10)
   unallocatedPoints Int    @default(0)
+  lastHydratedAt  DateTime?
+  lastQuestRollDate String?
+  integrityScore  Float    @default(100.0)
+  pressureScore   Int      @default(0)
+  stabilityScore  Float    @default(100.0)
+  recoveryModeActive Boolean @default(false)
+  cooldownActive  Boolean  @default(false)
+  cooldownEndsAt  DateTime?
+  fatigueActive   Boolean  @default(false)
+  fatigueEndsAt   DateTime?
+  levelLocked     Boolean  @default(false)
+  examActive      Boolean  @default(false)
+  examChallengeStartedAt DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -88,6 +102,7 @@ model Quest {
   xpReward         Int
   verificationType String      // TIMER, WALKING, REFLECTION, ACTION
   userQuests       UserQuest[]
+  shadowSoldiers   ShadowSoldier[]
 }
 
 model UserQuest {
@@ -100,6 +115,9 @@ model UserQuest {
   completed   Boolean   @default(false)
   completedAt DateTime?
   inputData   String?
+  timerStartedAt DateTime?
+  proofType   String?
+  isHighTier  Boolean   @default(false)
 }
 
 model Boss {
@@ -110,6 +128,7 @@ model Boss {
   badgeReward String
   xpReward    Int
   spriteName  String
+  isRecovery  Boolean            @default(false)
   userBosses  UserBossProgress[]
 }
 
@@ -134,6 +153,16 @@ model PersonalProject {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   progress  Float    @default(0)
+  isDungeon Boolean  @default(false)
+  currentFloor Int   @default(1)
+  floor1Title String?
+  floor1Completed Boolean @default(false)
+  floor2Title String?
+  floor2Completed Boolean @default(false)
+  floor3Title String?
+  floor3Completed Boolean @default(false)
+  dungeonCompleted Boolean @default(false)
+  rewardClaimed Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -145,4 +174,55 @@ model XPLog {
   xpGained  Int
   source    String
   createdAt DateTime @default(now())
+}
+
+model UserQuestStreak {
+  id             String   @id @default(uuid())
+  userId         String
+  questId        String
+  streak         Int      @default(0)
+  lastCompletedAt DateTime?
+  @@unique([userId, questId])
+}
+
+model VerificationSession {
+  id             String   @id @default(uuid())
+  userId         String
+  userQuestId    String?
+  challengeCode  String
+  challengeType  String
+  issuedAt       DateTime @default(now())
+  expiresAt      DateTime
+  captureMode    String   // "IMAGE" or "VIDEO"
+  ocrResult      String?
+  objectResult   String?
+  manualTextInput String?
+  confidenceScore Float?
+  decision       String   // "PASS", "RETRY", "FAIL", "FLAGGED"
+}
+
+model ShadowSoldier {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questId   String
+  quest     Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+  title     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Duel {
+  id             String   @id @default(uuid())
+  challengerId   String
+  opponentId     String
+  durationHours  Int
+  status         String   // "PENDING", "ACTIVE", "COMPLETED", "DECLINED"
+  startTime      DateTime?
+  endTime        DateTime?
+  challengerXP   Int      @default(0)
+  opponentXP     Int      @default(0)
+  challengerStance String? // "BERSERKER", "FOCUS", "NONE"
+  opponentStance   String? // "BERSERKER", "FOCUS", "NONE"
+  createdAt      DateTime @default(now())
 }

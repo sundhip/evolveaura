@@ -11,7 +11,37 @@ export const getActiveBoss = async (req: AuthRequest, res: Response) => {
     });
 
     if (!progress) {
-      const boss = await prisma.boss.findFirst();
+      const profile = await prisma.profile.findUnique({ where: { userId: req.userId! } });
+      const isHighPressure = profile ? profile.pressureScore >= 70 : false;
+
+      let boss = null;
+      if (isHighPressure) {
+        boss = await prisma.boss.findFirst({
+          where: { isRecovery: true }
+        });
+        if (!boss) {
+          boss = await prisma.boss.create({
+            data: {
+              name: "The Exam Pressure Beast",
+              description: "A manifestation of academic anxiety. Standard study blocks bounce off. Damaged only by Calm Reset, breathing, reflection, or sleep.",
+              maxHP: 3000,
+              badgeReward: "Zen Warrior",
+              xpReward: 1000,
+              spriteName: "beast",
+              isRecovery: true
+            }
+          });
+        }
+      } else {
+        boss = await prisma.boss.findFirst({
+          where: { isRecovery: false }
+        });
+      }
+
+      if (!boss) {
+        boss = await prisma.boss.findFirst();
+      }
+
       if (!boss) return res.status(404).json({ error: 'No bosses seeded' });
 
       progress = await prisma.userBossProgress.create({
@@ -42,6 +72,13 @@ export const attackBoss = async (req: AuthRequest, res: Response) => {
     });
 
     if (!progress) return res.status(404).json({ error: 'No active boss found' });
+
+    // Recovery boss rule: cannot be damaged by TIMER
+    if (progress.boss.isRecovery && actionType === 'TIMER') {
+      return res.status(400).json({ 
+        error: 'The active boss is a Recovery Boss. It cannot be damaged through standard deep-work blocks. It can only be defeated through calm actions, reflection entries, or rest!' 
+      });
+    }
 
     const dmg = calculateDamage(actionType, focusMinutes);
     const newHP = Math.max(0, progress.currentHP - dmg);
@@ -150,17 +187,28 @@ export const completeBossQuest = async (req: AuthRequest, res: Response) => {
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
     let level = profile.currentLevel;
-    let xp = profile.currentXP + xpReward;
+    const { devBypass } = req.body;
+    const actualXPAward = devBypass ? -xpReward : xpReward;
+    let xp = profile.currentXP + actualXPAward;
     let required = Math.round(100 * Math.pow(level, 1.5));
     let points = profile.unallocatedPoints;
     let leveledUp = false;
 
-    while (xp >= required) {
-      xp -= required;
-      level += 1;
-      points += 5;
-      leveledUp = true;
-      required = Math.round(100 * Math.pow(level, 1.5));
+    if (xp < 0) {
+      while (xp < 0 && level > 1) {
+        level -= 1;
+        const prevLevelMaxXP = Math.round(100 * Math.pow(level, 1.5));
+        xp = prevLevelMaxXP + xp;
+      }
+      if (xp < 0) xp = 0;
+    } else {
+      while (xp >= required) {
+        xp -= required;
+        level += 1;
+        points += 5;
+        leveledUp = true;
+        required = Math.round(100 * Math.pow(level, 1.5));
+      }
     }
 
     const updatedProfile = await prisma.profile.update({
@@ -169,15 +217,15 @@ export const completeBossQuest = async (req: AuthRequest, res: Response) => {
         currentXP: xp,
         currentLevel: level,
         unallocatedPoints: points,
-        currentStreak: { increment: 1 }
+        currentStreak: devBypass ? profile.currentStreak : { increment: 1 }
       }
     });
 
     await prisma.xPLog.create({
       data: {
         userId: req.userId!,
-        xpGained: xpReward,
-        source: `Defeated Weekly Boss: ${progress.boss.name}`
+        xpGained: actualXPAward,
+        source: devBypass ? `Dev Skip Penalty: skipped Weekly Boss ${progress.boss.name}` : `Defeated Weekly Boss: ${progress.boss.name}`
       }
     });
 
@@ -185,9 +233,8 @@ export const completeBossQuest = async (req: AuthRequest, res: Response) => {
       success: true,
       leveledUp,
       level,
-      xpGained: xpReward,
-      profile: updatedProfile,
-      bossProgress: updatedBoss
+      xpGained: actualXPAward,
+      profile: updatedProfile
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -67,11 +67,13 @@ function AlertCard({ alert }: { alert: AlertDetail }) {
 
   // Typewriter effect for messages
   useEffect(() => {
+    setTypedMessage('');
+    setTypedSubtext('');
     let index = 0;
     const msg = alert.message;
     const timer = setInterval(() => {
       if (index < msg.length) {
-        setTypedMessage((prev) => prev + msg.charAt(index));
+        setTypedMessage(msg.substring(0, index + 1));
         // Play typewriter click every 2 characters to avoid audio overload
         if (index % 2 === 0) {
           audioEngine.playTypewriter();
@@ -85,7 +87,7 @@ function AlertCard({ alert }: { alert: AlertDetail }) {
           const sub = alert.subtext;
           const subTimer = setInterval(() => {
             if (sIndex < sub.length) {
-              setTypedSubtext((prev) => prev + sub.charAt(sIndex));
+              setTypedSubtext(sub.substring(0, sIndex + 1));
               if (sIndex % 2 === 0) {
                 audioEngine.playTypewriter();
               }

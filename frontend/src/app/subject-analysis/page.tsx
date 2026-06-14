@@ -77,7 +77,6 @@ export default function SubjectAnalysisPage() {
             <Link href="/dashboard" className="text-slate-400 hover:text-white">Dashboard</Link>
             <Link href="/focus" className="text-slate-400 hover:text-white">Focus</Link>
             <Link href="/subject-analysis" className="text-white hover:text-[#8B5CF6]">Subjects</Link>
-            <Link href="/analysis" className="text-slate-400 hover:text-white">Analysis</Link>
           </nav>
         </div>
       </header>

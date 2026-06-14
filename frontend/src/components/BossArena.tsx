@@ -35,7 +35,20 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
   const [isFainting, setIsFainting] = useState(false);
   const [isVictory, setIsVictory] = useState(false);
   const [shakeScreen, setShakeScreen] = useState(false);
+  const [isDevSkipped, setIsDevSkipped] = useState(false);
   const timerRef = useRef<any>(null);
+
+  // Checkpoint states
+  const [checkpointTimes, setCheckpointTimes] = useState<number[]>([]);
+  const [showCheckpoint, setShowCheckpoint] = useState(false);
+  const [checkpointTimer, setCheckpointTimer] = useState(60);
+  const [checkpointTarget, setCheckpointTarget] = useState<number[]>([]);
+  const [checkpointInput, setCheckpointInput] = useState<number[]>([]);
+  const showCheckpointRef = useRef(false);
+
+  useEffect(() => {
+    showCheckpointRef.current = showCheckpoint;
+  }, [showCheckpoint]);
 
   // Initialize and run the timer
   useEffect(() => {
@@ -56,13 +69,41 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
       subtext: isTrial ? `Focus Shield Capacity: 1 HP (Strict Mode) | Anti-cheat Active.` : `Focus Shield Capacity: ${maxShieldHP} HP | Anti-cheat Active.`
     });
 
+    // Generate random checkpoint times (e.g., one checkpoint per 20-30 minutes)
+    const times: number[] = [];
+    const sessionMinutes = totalSeconds / 60;
+    const numCheckpoints = Math.max(1, Math.floor(sessionMinutes / 25));
+    for (let i = 0; i < numCheckpoints; i++) {
+      const segment = totalSeconds / numCheckpoints;
+      const min = i * segment + 60;
+      const max = (i + 1) * segment - 60;
+      const randomTime = Math.floor(min + Math.random() * (max - min));
+      times.push(randomTime);
+    }
+    setCheckpointTimes(times);
+
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
+        if (showCheckpointRef.current) {
+          return prev; // Freeze main countdown during active checkpoints
+        }
         if (prev <= 1) {
           clearInterval(timerRef.current);
           handleVictoryResolution();
           return 0;
         }
+
+        const elapsed = totalSeconds - prev + 1;
+        if (times.includes(elapsed)) {
+          // Trigger synapse checkpoint
+          const target = [1, 2, 3].sort(() => Math.random() - 0.5);
+          setCheckpointTarget(target);
+          setCheckpointInput([]);
+          setCheckpointTimer(60);
+          setShowCheckpoint(true);
+          audioEngine.playBreach();
+        }
+
         return prev - 1;
       });
     }, 1000);
@@ -93,6 +134,58 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
       window.removeEventListener('blur', handleWindowBlur);
     };
   }, [shieldHP]);
+
+  // Checkpoint countdown timer and validation
+  useEffect(() => {
+    let t: any = null;
+    if (showCheckpoint && checkpointTimer > 0) {
+      t = setInterval(() => {
+        setCheckpointTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(t);
+            handleCheckpointFailure("Verification timed out.");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(t);
+  }, [showCheckpoint, checkpointTimer]);
+
+  const handleCheckpointFailure = (reason: string) => {
+    setShowCheckpoint(false);
+    handleBreachDetected(`Checkpoint failed: ${reason}`);
+  };
+
+  const handleCheckpointNodeClick = (num: number) => {
+    audioEngine.playNavTick();
+    const nextInput = [...checkpointInput, num];
+    
+    // Check correctness
+    const isCorrect = nextInput.every((val, index) => val === checkpointTarget[index]);
+    
+    if (!isCorrect) {
+      // Wrong! Reset and play alarm sound
+      setCheckpointInput([]);
+      audioEngine.playBreach();
+      return;
+    }
+    
+    setCheckpointInput(nextInput);
+    
+    if (nextInput.length === checkpointTarget.length) {
+      // Success!
+      setShowCheckpoint(false);
+      triggerSystemAlert({
+        type: 'QUEST_CLEAR',
+        title: 'VERIFICATION SUCCESSFUL',
+        message: 'Active focus presence verified.',
+        subtext: 'Resuming focus timer.'
+      });
+      audioEngine.playSuccess();
+    }
+  };
 
   const handleBreachDetected = (reason: string) => {
     if (isFainting || isVictory) return;
@@ -145,7 +238,10 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
     audioEngine.playLevelUp();
     try {
       if (isTrial) {
-        const res = await apiRequest('/profile/ascend-rank', { method: 'POST' });
+        const res = await apiRequest('/profile/ascend-rank', {
+          method: 'POST',
+          body: JSON.stringify({ devBypass: isDevSkipped })
+        });
         triggerSystemAlert({
           type: 'QUEST_CLEAR',
           title: 'RANK ASCENDED',
@@ -157,13 +253,16 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
         }, 4000);
         return;
       }
-      const res = await apiRequest('/bosses/complete-quest', { method: 'POST' });
+      const res = await apiRequest('/bosses/complete-quest', {
+        method: 'POST',
+        body: JSON.stringify({ devBypass: isDevSkipped })
+      });
       
       triggerSystemAlert({
         type: 'QUEST_CLEAR',
-        title: 'VICTORY ACHIEVED',
-        message: `Weekly Boss ${boss.name} defeated!`,
-        subtext: `Allocating +${res.xpGained} XP to status.`
+        title: isDevSkipped ? 'DEV BYPASS ACTIVATED' : 'VICTORY ACHIEVED',
+        message: isDevSkipped ? `Weekly Boss ${boss.name} bypassed (skip penalty applied).` : `Weekly Boss ${boss.name} defeated!`,
+        subtext: isDevSkipped ? `Allocating ${res.xpGained} XP to status.` : `Allocating +${res.xpGained} XP to status.`
       });
 
       setTimeout(() => {
@@ -184,6 +283,7 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
 
   // Dev Speed-up hack to test resolutions (only visible in development)
   const devFastForward = () => {
+    setIsDevSkipped(true);
     setTimeLeft(5);
   };
 
@@ -389,6 +489,68 @@ export default function BossArena({ bossProgress, profile, onVictory, onDefeat, 
               >
                 You successfully sustained your focus block to clear the trial. Experience points and streak allocations are updating...
               </motion.p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Random Checkpoint Modal */}
+      <AnimatePresence>
+        {showCheckpoint && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1010] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center text-center space-y-6"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/40 flex items-center justify-center text-amber-500 animate-pulse">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            
+            <div className="space-y-2 max-w-sm px-4">
+              <h2 className="text-xl font-black text-amber-400 tracking-wider font-mono uppercase animate-pulse">
+                SYNAPSE CHECKPOINT
+              </h2>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Confirm your presence in the matrix. Click the nodes in the exact sequence requested within 60 seconds:
+              </p>
+              <div className="font-mono text-sm font-bold text-white bg-slate-900 border border-slate-800 p-2.5 rounded-xl mt-2">
+                ORDER: {checkpointTarget.map((t, idx) => (
+                  <span key={idx} className="mx-1 px-2.5 py-1 rounded bg-[#8B5CF6]/20 border border-[#8B5CF6]/30 text-[#8B5CF6]">
+                    Node {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Checkpoint timer */}
+            <div className="text-3xl font-black text-red-500 font-mono tabular-nums">
+              {checkpointTimer}s Remaining
+            </div>
+
+            {/* Node clickable options */}
+            <div className="flex space-x-4">
+              {[1, 2, 3].map((num) => {
+                const isClicked = checkpointInput.includes(num);
+                return (
+                  <button
+                    key={num}
+                    onClick={() => handleCheckpointNodeClick(num)}
+                    disabled={isClicked}
+                    className={`w-14 h-14 rounded-2xl border flex items-center justify-center font-bold text-sm transition-all duration-200 cursor-pointer ${
+                      isClicked
+                        ? 'bg-slate-900 border-slate-800 text-slate-600'
+                        : 'bg-[#8B5CF6]/10 border-[#8B5CF6]/40 text-[#8B5CF6] hover:bg-[#8B5CF6] hover:text-white hover:scale-105 shadow-md shadow-[#8B5CF6]/10'
+                    }`}
+                  >
+                    Node {num}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="text-[10px] text-slate-500 font-mono italic">
+              Verification failure triggers structural shield decay.
             </div>
           </motion.div>
         )}
