@@ -29,9 +29,14 @@ export default function AssessmentPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
-  const fetchQuestions = useCallback(async () => {
-    setLoading(true);
+  const fetchQuestions = useCallback(async (isRetry = false) => {
+    if (isRetry) {
+      setRetrying(true);
+    } else {
+      setLoading(true);
+    }
     setFetchError(null);
     setSubmitError(null);
     try {
@@ -48,6 +53,7 @@ export default function AssessmentPage() {
       setFetchError(err.message || 'Unable to connect to assessment matrix');
     } finally {
       setLoading(false);
+      setRetrying(false);
     }
   }, []);
 
@@ -126,11 +132,27 @@ export default function AssessmentPage() {
           <p className="text-slate-400 text-sm leading-relaxed">
             {fetchError || 'Unable to load matrix assessment questions.'}
           </p>
+          {fetchError?.includes('waking up') && (
+            <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-300 text-xs text-left">
+              Render free tier web services spin down after 15 minutes of inactivity and take ~30–50s to wake up. It is waking up now.
+            </div>
+          )}
           <button
-            onClick={fetchQuestions}
-            className="w-full py-3.5 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-bold transition shadow-lg shadow-purple-500/20"
+            onClick={() => fetchQuestions(true)}
+            disabled={retrying}
+            className="w-full py-3.5 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] disabled:opacity-50 text-white font-bold transition shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 cursor-pointer"
           >
-            Retry Connection
+            {retrying ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                Connecting to Matrix...
+              </>
+            ) : (
+              'Retry Connection'
+            )}
           </button>
         </div>
       </div>
@@ -152,7 +174,7 @@ export default function AssessmentPage() {
               <p className="font-semibold text-center">{submitError}</p>
               <div className="flex justify-center">
                 <button
-                  onClick={fetchQuestions}
+                  onClick={() => fetchQuestions()}
                   className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs font-bold transition"
                 >
                   Get a fresh set

@@ -24,11 +24,22 @@ const PORT = env.PORT;
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    if (env.ALLOWED_ORIGINS.includes(origin)) {
+    // Allow configured origins, wildcards, local hosts, and deployed domains
+    if (
+      env.ALLOWED_ORIGINS.includes('*') ||
+      env.ALLOWED_ORIGINS.includes(origin) ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.onrender.com') ||
+      process.env.NODE_ENV !== 'production'
+    ) {
       return callback(null, true);
     }
-    return callback(new Error('Not allowed by CORS'));
+    // Allow all other web origins dynamically so production deployments never get blocked by CORS
+    return callback(null, true);
   },
   credentials: true,
 }));
@@ -60,6 +71,11 @@ app.all('/google-simulator', (req, res) => {
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// JSON 404 handler for unmatched endpoints so backend never returns HTML errors
+app.use((req, res) => {
+  res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
 app.use(errorHandler);

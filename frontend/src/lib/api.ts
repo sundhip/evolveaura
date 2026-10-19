@@ -1,33 +1,92 @@
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:5000/api';
+export const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
+    // Allow custom override in localStorage if configured
+    const savedApi = localStorage.getItem('NEXT_PUBLIC_API_URL');
+    if (savedApi && savedApi.trim()) {
+      const trimmed = savedApi.trim().replace(/\/+$/, '');
+      return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+    }
   }
-  let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+  let url = process.env.NEXT_PUBLIC_API_URL || '';
+  if (!url) {
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      url = '/api';
+    } else {
+      url = 'http://localhost:5000/api';
+    }
+  }
+
   if (!url.endsWith('/api')) {
-    url = `${url}/api`;
+    url = url.replace(/\/+$/, '') + '/api';
   }
   return url;
 };
 
-const BASE_URL = getBaseUrl();
-
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+  const baseUrl = getBaseUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {})
+    ...((options.headers as Record<string, string>) || {})
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers
-  });
+  const targetUrl = `${baseUrl}${endpoint}`;
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || 'Something went wrong');
+  let response: Response;
+  try {
+    response = await fetch(targetUrl, {
+      ...options,
+      headers
+    });
+  } catch (err: any) {
+    const isNetworkError =
+      err?.name === 'TypeError' ||
+      err?.message?.includes('fetch') ||
+      err?.message?.includes('NetworkError');
+
+    if (isNetworkError) {
+      throw new Error(
+        'Unable to connect to backend server. Render free instances sleep after inactivity and take ~30–50s to wake up. Please wait a moment and retry.'
+      );
+    }
+    throw err;
   }
+
+  const contentType = response.headers.get('content-type') || '';
+  let data: any = null;
+
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+  } else {
+    // Non-JSON response (such as HTML 502/503 from Render cold start, Cloudflare, or 404 from frontend router)
+    if (!response.ok) {
+      if (response.status === 502 || response.status === 503 || response.status === 504) {
+        throw new Error(
+          'Backend server is waking up from sleep (Render free tier spin-up takes ~30–50s). Please wait a few seconds and click Retry.'
+        );
+      }
+      if (response.status === 404) {
+        throw new Error(
+          `API endpoint not found (404) at ${targetUrl}. Please ensure your backend is deployed and NEXT_PUBLIC_API_URL is configured.`
+        );
+      }
+      throw new Error(`Server returned HTTP ${response.status} (${response.statusText || 'Error'}).`);
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.error || `Request failed with status ${response.status}`);
+  }
+
   return data;
 }
 
