@@ -188,8 +188,17 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!loading && typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [loading]);
 
   // Emergency Breathing Timer
   useEffect(() => {
@@ -2304,7 +2313,7 @@ const DASHBOARD_TOUR_STEPS = [
 
 const PHASE1_TOUR_STEPS = [
   {
-    targetId: "dashboard-grid",
+    targetId: null,
     title: "Your Lifecycle Dashboard",
     description: "[System Guide: Your real-world lifecycle parameters have been digitized. This is your active daily workspace to track and manage your growth.]",
     badge: "System Guide"

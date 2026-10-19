@@ -182,7 +182,10 @@ export default function ChoosePathPage() {
         method: 'POST',
         body: JSON.stringify({ path: selectedPath }),
       });
-      router.push('/dashboard');
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
+      router.push('/dashboard', { scroll: true });
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to set path');
       setSubmitting(false);

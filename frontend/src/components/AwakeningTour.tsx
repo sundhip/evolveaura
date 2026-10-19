@@ -63,7 +63,7 @@ export default function AwakeningTour({ steps, onComplete }: TourProps) {
             rect.right <= window.innerWidth;
 
           if (!isInViewport) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
           hasScrolled = true;
         }

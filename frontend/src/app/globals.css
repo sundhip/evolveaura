@@ -15,7 +15,7 @@ body {
   color: var(--foreground);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Custom premium styles */
