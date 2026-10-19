@@ -8,13 +8,18 @@ import { ShieldCheck, Compass, Heart, Zap, ArrowRight } from 'lucide-react';
 export default function ReportPage() {
   const router = useRouter();
   const [report, setReport] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadReport() {
       try {
-        const data = await apiRequest('/assessment/latest');
+        const [data, profileData] = await Promise.all([
+          apiRequest('/assessment/latest'),
+          apiRequest('/auth/profile').catch(() => null),
+        ]);
         setReport(data);
+        setProfile(profileData?.profile || null);
       } catch (err) {
         console.error("Load report error", err);
       } finally {
@@ -140,18 +145,38 @@ export default function ReportPage() {
         </div>
       </div>
 
-      {/* Action Button */}
-      <motion.div
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="px-8 py-4 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-bold flex items-center shadow-lg shadow-[#8B5CF6]/20 transition"
-        >
-          Enter Dashboard <ArrowRight className="w-5 h-5 ml-2" />
-        </button>
-      </motion.div>
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        {profile?.chosenPath ? (
+          <>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-8 py-4 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-bold flex items-center shadow-lg shadow-[#8B5CF6]/20 transition cursor-pointer"
+              >
+                Go to Dashboard <ArrowRight className="w-5 h-5 ml-2" />
+              </button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <button
+                onClick={() => router.push('/choose-path')}
+                className="px-6 py-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium border border-slate-700 transition cursor-pointer"
+              >
+                Switch Path
+              </button>
+            </motion.div>
+          </>
+        ) : (
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <button
+              onClick={() => router.push('/choose-path')}
+              className="px-8 py-4 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-bold flex items-center shadow-lg shadow-[#8B5CF6]/20 transition cursor-pointer"
+            >
+              Choose Your Path <ArrowRight className="w-5 h-5 ml-2" />
+            </button>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

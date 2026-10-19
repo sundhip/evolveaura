@@ -1,27 +1,14 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiRequest } from '../../lib/api';
 
-const QUESTIONS = [
-  "I prioritize deep study and focus blocks over passive phone scrolling.",
-  "I maintain active study loops using review cards or active recall sheets.",
-  "I regularly commit 7.5+ hours of screen-free night rest recovery.",
-  "I perform 30+ minutes of active walking or workout routines daily.",
-  "I practice box breathing or meditation when attention boundaries slip.",
-  "I write down nightly reflection feedback regarding my behavior.",
-  "I actively seek learning challenges outside standard workflows.",
-  "I complete code, writing, or layouts for my personal projects weekly.",
-  "I stay focused during study blocks without checking social media.",
-  "I review study cards at spaced intervals to ensure long-term memory.",
-  "I wake up at consistent times without multiple snoozes.",
-  "I take active movement breaks during study focus sessions.",
-  "I spend time checking what triggers my stress levels daily.",
-  "I notice immediately how instant-gratification reels affect my energy.",
-  "I ask why and how questions when studying complex subjects.",
-  "I commit to finishing personal drafts even when motivation drops."
-];
+interface QuestionItem {
+  id: string;
+  text: string;
+  position: number;
+}
 
 const OPTIONS = [
   { text: "Strongly Agree", val: 5, color: "hover:bg-emerald-500/10 hover:border-emerald-500" },
@@ -33,16 +20,48 @@ const OPTIONS = [
 
 export default function AssessmentPage() {
   const router = useRouter();
+  const [questions, setQuestions] = useState<QuestionItem[]>([]);
+  const [attemptId, setAttemptId] = useState<string | null>(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [reviewMode, setReviewMode] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const fetchQuestions = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    setSubmitError(null);
+    try {
+      const data = await apiRequest('/assessment/questions');
+      if (!data.questions || data.questions.length === 0) {
+        throw new Error('No assessment questions returned from matrix core.');
+      }
+      setAttemptId(data.attemptId);
+      setQuestions(data.questions);
+      setAnswers({});
+      setCurrentIdx(0);
+      setReviewMode(false);
+    } catch (err: any) {
+      setFetchError(err.message || 'Unable to connect to assessment matrix');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQuestions();
+  }, [fetchQuestions]);
 
   const handleSelect = (val: number) => {
-    const qKey = `q${currentIdx + 1}`;
-    setAnswers({ ...answers, [qKey]: val });
+    const currentQ = questions[currentIdx];
+    if (!currentQ) return;
 
-    if (currentIdx < QUESTIONS.length - 1) {
+    setAnswers(prev => ({ ...prev, [currentQ.id]: val }));
+
+    if (currentIdx < questions.length - 1) {
       setCurrentIdx(currentIdx + 1);
     } else {
       setReviewMode(true);
@@ -50,42 +69,120 @@ export default function AssessmentPage() {
   };
 
   const submit = async () => {
-    setLoading(true);
+    if (!attemptId) return;
+    setSubmitting(true);
+    setSubmitError(null);
     try {
       await apiRequest('/assessment/submit', {
         method: 'POST',
-        body: JSON.stringify({ answers })
+        body: JSON.stringify({ attemptId, answers })
       });
       router.push('/report');
-    } catch (e) {
-      router.push('/report');
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to submit assessment');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const percent = Math.round((currentIdx / QUESTIONS.length) * 100);
+  // Skeleton Loader during initial fetch
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col justify-between items-center px-4 py-8 bg-[#0F172A]">
+        <div className="w-full max-w-2xl flex items-center justify-between text-slate-500 text-sm mb-6 animate-pulse">
+          <div className="h-4 w-36 bg-slate-800 rounded"></div>
+          <div className="h-4 w-28 bg-slate-800 rounded"></div>
+        </div>
 
+        <div className="w-full max-w-2xl h-2 bg-slate-800 rounded-full mb-12 overflow-hidden">
+          <div className="h-full bg-slate-700 w-1/4 animate-pulse"></div>
+        </div>
+
+        <div className="w-full max-w-2xl my-auto flex flex-col items-center space-y-8 animate-pulse">
+          <div className="w-full h-24 bg-slate-800/60 rounded-2xl border border-slate-800"></div>
+          <div className="flex flex-col gap-2.5 w-full max-w-md mx-auto pt-6">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="w-full h-12 bg-slate-800/40 rounded-xl border border-slate-800/60"></div>
+            ))}
+          </div>
+        </div>
+
+        <div className="w-full max-w-2xl mt-8 pt-4 border-t border-slate-800/40 flex justify-between">
+          <div className="h-8 w-28 bg-slate-800/40 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fetch Error State with Retry button
+  if (fetchError || questions.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center px-4 py-8 bg-[#0F172A]">
+        <div className="w-full max-w-md glass-panel p-8 text-center space-y-6">
+          <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 mx-auto flex items-center justify-center text-xl font-bold">
+            !
+          </div>
+          <h2 className="text-xl font-bold text-white">Calibration Offline</h2>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            {fetchError || 'Unable to load matrix assessment questions.'}
+          </p>
+          <button
+            onClick={fetchQuestions}
+            className="w-full py-3.5 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-bold transition shadow-lg shadow-purple-500/20"
+          >
+            Retry Connection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const percent = Math.round(((currentIdx + 1) / questions.length) * 100);
+  const currentQuestion = questions[currentIdx];
+
+  // Review Mode Screen
   if (reviewMode) {
     return (
       <div className="min-h-screen flex flex-col justify-between items-center px-4 py-8 bg-[#0F172A]">
         <div className="w-full max-w-xl glass-panel p-8 space-y-6">
           <h2 className="text-2xl font-bold text-white text-center">Review Your Matrix Parameters</h2>
+
+          {submitError && (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm space-y-3">
+              <p className="font-semibold text-center">{submitError}</p>
+              <div className="flex justify-center">
+                <button
+                  onClick={fetchQuestions}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs font-bold transition"
+                >
+                  Get a fresh set
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4 max-h-[360px] overflow-y-auto pr-2">
-            {QUESTIONS.map((q, idx) => (
-              <div key={idx} className="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl text-xs border border-slate-800">
-                <span className="text-slate-300 pr-4">{idx + 1}. {q}</span>
-                <span className="font-bold text-[#8B5CF6]">Score: {answers[`q${idx + 1}`] || 3}</span>
+            {questions.map((q, idx) => (
+              <div key={q.id} className="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl text-xs border border-slate-800">
+                <span className="text-slate-300 pr-4">{idx + 1}. {q.text}</span>
+                <span className="font-bold text-[#8B5CF6] shrink-0">Score: {answers[q.id] || 3}</span>
               </div>
             ))}
           </div>
 
           <div className="flex space-x-4 pt-4">
-            <button onClick={() => { setReviewMode(false); setCurrentIdx(0); }} className="w-1/2 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-bold transition">
-              Reset
+            <button
+              onClick={() => { setReviewMode(false); setCurrentIdx(0); }}
+              className="w-1/2 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white font-bold transition"
+            >
+              Reset Answers
             </button>
-            <button onClick={submit} disabled={loading} className="w-1/2 py-3 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] text-white font-bold transition">
-              {loading ? "Integrating..." : "Submit Matrix"}
+            <button
+              onClick={submit}
+              disabled={submitting}
+              className="w-1/2 py-3 rounded-xl bg-[#8B5CF6] hover:bg-[#7c4fe3] disabled:opacity-50 text-white font-bold transition shadow-lg shadow-purple-500/20"
+            >
+              {submitting ? "Integrating..." : "Submit Matrix"}
             </button>
           </div>
         </div>
@@ -93,22 +190,32 @@ export default function AssessmentPage() {
     );
   }
 
+  // Main Question Walkthrough Screen
   return (
     <div className="min-h-screen flex flex-col justify-between items-center px-4 py-8 bg-[#0F172A]">
       <div className="w-full max-w-2xl flex items-center justify-between text-slate-400 text-sm mb-6">
         <span className="font-semibold text-[#8B5CF6] uppercase tracking-wider">Matrix Calibration</span>
-        <span>Question {currentIdx + 1} of {QUESTIONS.length}</span>
+        <span>Question {currentIdx + 1} of {questions.length}</span>
       </div>
 
       <div className="w-full max-w-2xl h-2 bg-slate-800 rounded-full mb-12 overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#60A5FA] transition-all duration-300" style={{ width: `${percent}%` }} />
+        <div
+          className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#60A5FA] transition-all duration-300"
+          style={{ width: `${percent}%` }}
+        />
       </div>
 
       <div className="w-full max-w-2xl my-auto flex flex-col items-center">
         <AnimatePresence mode="wait">
-          <motion.div key={currentIdx} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} className="w-full text-center space-y-8">
+          <motion.div
+            key={currentQuestion.id}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            className="w-full text-center space-y-8"
+          >
             <h2 className="text-xl md:text-2xl font-bold text-white max-w-xl mx-auto px-4 min-h-[96px] flex items-center justify-center">
-              "{QUESTIONS[currentIdx]}"
+              "{currentQuestion.text}"
             </h2>
 
             <div className="flex flex-col gap-2.5 w-full max-w-md mx-auto pt-6">
@@ -116,7 +223,9 @@ export default function AssessmentPage() {
                 <button
                   key={opt.val}
                   onClick={() => handleSelect(opt.val)}
-                  className="w-full py-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-300 font-semibold transition hover:text-white"
+                  className={`w-full py-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-300 font-semibold transition hover:text-white ${opt.color} ${
+                    answers[currentQuestion.id] === opt.val ? 'border-[#8B5CF6] bg-[#8B5CF6]/10 text-white' : ''
+                  }`}
                 >
                   {opt.text}
                 </button>
@@ -127,9 +236,21 @@ export default function AssessmentPage() {
       </div>
 
       <div className="flex justify-between w-full max-w-2xl mt-8 pt-4 border-t border-slate-800/40">
-        <button onClick={() => currentIdx > 0 && setCurrentIdx(currentIdx - 1)} disabled={currentIdx === 0} className="px-6 py-2 text-slate-500 hover:text-white disabled:opacity-30">
+        <button
+          onClick={() => currentIdx > 0 && setCurrentIdx(currentIdx - 1)}
+          disabled={currentIdx === 0}
+          className="px-6 py-2 text-slate-500 hover:text-white disabled:opacity-30 transition font-medium"
+        >
           Previous Question
         </button>
+        {answers[currentQuestion.id] && currentIdx < questions.length - 1 && (
+          <button
+            onClick={() => setCurrentIdx(currentIdx + 1)}
+            className="px-6 py-2 text-[#8B5CF6] hover:text-purple-300 transition font-medium"
+          >
+            Next Question
+          </button>
+        )}
       </div>
     </div>
   );

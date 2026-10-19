@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import prisma from '../config/db';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { getDynamicChallenge, getDifficultyMultiplier } from '../services/questEngine';
+import { generateDailyQuestsForUser, getDynamicChallenge, getDifficultyMultiplier } from '../services/questEngine';
 
 export const getDailyQuests = async (req: AuthRequest, res: Response) => {
   try {
@@ -15,74 +15,19 @@ export const getDailyQuests = async (req: AuthRequest, res: Response) => {
     }
     
     const today = new Date(todayStr + 'T00:00:00Z');
-    const dayOfWeek = today.getUTCDay();
 
-    let userQuests = await prisma.userQuest.findMany({
-      where: { userId: req.userId!, date: today },
-      include: { quest: true }
-    });
-
-    if (userQuests.length === 0) {
-      const profile = await prisma.profile.findUnique({ where: { userId: req.userId! } });
-      const lastAss = await prisma.assessment.findFirst({
-        where: { userId: req.userId! },
-        orderBy: { completedAt: 'desc' }
-      });
-
-      const mult = getDifficultyMultiplier(profile?.auraRank || 'E');
-      const dynChallenge = getDynamicChallenge(dayOfWeek);
-
-      // Fetch default seeded templates
-      const templates = await prisma.quest.findMany({
-        where: { path: { in: ['SCHOLAR', 'WARRIOR', 'SAGE', 'CREATOR'] } }
-      });
-
-      // Add dynamic weekday quest
-      let dynamicQuest = await prisma.quest.findFirst({ where: { title: dynChallenge.title } });
-      if (!dynamicQuest) {
-        dynamicQuest = await prisma.quest.create({
-          data: {
-            title: dynChallenge.title,
-            description: dynChallenge.desc,
-            path: dynChallenge.path,
-            difficulty: "MEDIUM",
-            xpReward: 100,
-            verificationType: "ACTION"
-          }
-        });
-      }
-
-      const allQuests = [...templates.slice(0, 4), dynamicQuest];
-
-      for (const q of allQuests) {
-        const alreadyExists = await prisma.userQuest.findFirst({
-          where: {
-            userId: req.userId!,
-            questId: q.id,
-            date: today
-          }
-        });
-        if (!alreadyExists) {
-          await prisma.userQuest.create({
-            data: {
-              userId: req.userId!,
-              questId: q.id,
-              date: today
-            }
-          });
-        }
-      }
-
-      userQuests = await prisma.userQuest.findMany({
-        where: { userId: req.userId!, date: today },
-        include: { quest: true }
-      });
+    const result = await generateDailyQuestsForUser(req.userId!, today, todayStr);
+    if (result.error === 'PATH_NOT_CHOSEN') {
+      return res.status(409).json({ error: 'PATH_NOT_CHOSEN', message: 'User has not chosen a path' });
+    }
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
     }
 
-    // Always run self-healing deduplication on userQuests to ensure clean database state
+    // Run self-healing deduplication on userQuests to ensure clean database state
     const uniqueQuestsMap = new Map<string, any>();
     const idsToDelete: string[] = [];
-    for (const uq of userQuests) {
+    for (const uq of result.quests) {
       if (uniqueQuestsMap.has(uq.questId)) {
         const existing = uniqueQuestsMap.get(uq.questId);
         if (!existing.completed && uq.completed) {

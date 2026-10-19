@@ -3,8 +3,22 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import FocusTimer from '../../components/FocusTimer';
+import { useRequirePath } from '../../lib/useRequirePath';
 
 export default function FocusPage() {
+  const { checking } = useRequirePath();
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0F172A] text-white">
+        <div className="text-center space-y-4">
+          <div className="w-12 h-12 rounded-full border-4 border-[#8B5CF6] border-t-transparent animate-spin mx-auto" />
+          <p className="text-slate-400 font-medium font-mono text-xs">Calibrating Focus Parameters...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0F172A] flex flex-col justify-between pb-12">
       {/* Header */}

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiRequest } from '../../lib/api';
+import { useRequirePath } from '../../lib/useRequirePath';
 import AwakeningTour from '../../components/AwakeningTour';
 import ChatBot from '../../components/ChatBot';
 import BossArena from '../../components/BossArena';
@@ -14,6 +15,7 @@ import {
   Zap, 
   Flame, 
   Shield, 
+  ShieldCheck, 
   Gift, 
   Plus, 
   Volume2, 
@@ -43,6 +45,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [activeBoss, setActiveBoss] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { checking: pathChecking } = useRequirePath();
   
   // Modals & UI States
   const [showTour, setShowTour] = useState(false);
@@ -173,7 +176,11 @@ export default function DashboardPage() {
         localStorage.removeItem('shouldShowTour');
         localStorage.setItem('hasCompletedTour', 'true');
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.message?.includes('PATH_NOT_CHOSEN') || e?.error === 'PATH_NOT_CHOSEN') {
+        router.push('/choose-path');
+        return;
+      }
       router.push('/login');
     } finally {
       setLoading(false);
@@ -520,7 +527,7 @@ export default function DashboardPage() {
     audioEngine.playNavTick();
   };
 
-  if (loading) {
+  if (loading || pathChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white bg-[#0F172A]">
         <div className="text-center space-y-4">
@@ -783,6 +790,15 @@ export default function DashboardPage() {
             <Link onMouseEnter={handleHoverTick} href="/dashboard" className="text-white">Dashboard</Link>
             <Link onMouseEnter={handleHoverTick} id="focus-telemetry" href="/focus" className="text-slate-400 hover:text-white transition">Focus</Link>
             <Link onMouseEnter={handleHoverTick} id="subjects-grid" href="/subject-analysis" className="text-slate-400 hover:text-white transition">Subjects</Link>
+            <Link onMouseEnter={handleHoverTick} href="/assessment" className="text-[#8B5CF6] hover:text-[#a78bfa] font-semibold transition">
+              Retake Assessment (new questions)
+            </Link>
+            <Link onMouseEnter={handleHoverTick} href="/choose-path" className="text-slate-400 hover:text-white transition">
+              Switch Path
+            </Link>
+            <Link onMouseEnter={handleHoverTick} href="/quit" className="text-emerald-400 hover:text-emerald-300 font-semibold transition flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Smoke-Free
+            </Link>
             <button onMouseEnter={handleHoverTick} onClick={() => { setActiveTourSteps(DASHBOARD_TOUR_STEPS); setShowTour(true); }} className="text-slate-400 hover:text-white font-medium transition cursor-pointer">Tour</button>
             <button onMouseEnter={handleHoverTick} onClick={handleSignOut} className="text-red-400 hover:text-red-300 font-bold transition flex items-center cursor-pointer">
               <LogOut className="w-4 h-4 mr-1" /> Sign Out
@@ -1006,6 +1022,42 @@ export default function DashboardPage() {
             );
           })}
 
+          {/* Smoke-Free Path Quick Access Banner */}
+          <div className="max-w-6xl mx-auto px-4 mt-6">
+            <div className="glass-panel p-4 border border-emerald-500/30 bg-emerald-950/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white font-bold text-sm">Smoke-Free Path</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      TCC Self-Help
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Track smoke-free streaks, ride cravings with 5 rapid tools, and protect cardiorespiratory health.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+                <Link
+                  href="/quit/sos"
+                  className="flex-1 sm:flex-none text-center px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition"
+                >
+                  Craving SOS
+                </Link>
+                <Link
+                  href="/quit"
+                  className="flex-1 sm:flex-none text-center px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-md shadow-emerald-950/40"
+                >
+                  Open Path →
+                </Link>
+              </div>
+            </div>
+          </div>
+
           {/* Four Paths Archetype Row */}
           <div id="archetype-cards-container" className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 max-w-6xl mx-auto px-4">
             {[
@@ -1013,26 +1065,43 @@ export default function DashboardPage() {
               { path: 'Warrior', stat: profile?.statSTR || 10, color: 'border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400', desc: 'Sleep, energy & exercise' },
               { path: 'Sage', stat: profile?.statWIS || 10, color: 'border-cyan-500/20 bg-cyan-500/5 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-cyan-400', desc: 'Mindfulness & resilience' },
               { path: 'Creator', stat: profile?.statAGI || 10, color: 'border-amber-500/20 bg-amber-500/5 hover:border-amber-500/50 hover:bg-amber-500/10 text-amber-400', desc: 'Curiosity & creative building' }
-            ].map(p => (
-              <div key={p.path} className={`glass-panel p-4 border rounded-2xl flex flex-col justify-between transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg group relative overflow-hidden ${p.color}`}>
-                <div className="space-y-1.5 z-10">
-                  <span className="text-[10px] font-bold uppercase tracking-widest block opacity-70">{p.path} Path</span>
-                  <p className="text-[10px] text-slate-400 leading-tight block">{p.desc}</p>
-                </div>
-                
-                <div className="flex justify-between items-center mt-4 pt-2 border-t border-slate-800/40 z-10">
-                  <span className="text-[10px] text-slate-500 font-mono">CALIBRATION INDEX</span>
-                  <span className="text-sm font-black font-mono">[{p.stat}]</span>
-                </div>
+            ].map(p => {
+              const isChosen = profile?.chosenPath?.toUpperCase() === p.path.toUpperCase();
+              return (
+                <div 
+                  key={p.path} 
+                  className={`glass-panel p-4 border rounded-2xl flex flex-col justify-between transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg group relative overflow-hidden ${p.color} ${
+                    isChosen 
+                      ? 'ring-2 ring-[#8B5CF6] shadow-lg shadow-[#8B5CF6]/30 opacity-100' 
+                      : profile?.chosenPath ? 'opacity-60 hover:opacity-100' : ''
+                  }`}
+                >
+                  <div className="space-y-1.5 z-10">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest block opacity-70">{p.path} Path</span>
+                      {isChosen && (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest bg-[#8B5CF6] text-white uppercase shadow-sm">
+                          Your Path
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-tight block">{p.desc}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-4 pt-2 border-t border-slate-800/40 z-10">
+                    <span className="text-[10px] text-slate-500 font-mono">CALIBRATION INDEX</span>
+                    <span className="text-sm font-black font-mono">[{p.stat}]</span>
+                  </div>
 
-                {/* Level tracker tag revealed on hover */}
-                <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-3 text-center transition-all duration-300 opacity-0 group-hover:opacity-100 z-20">
-                  <span className="text-[10px] font-bold text-white uppercase tracking-widest">{p.path} Path Level</span>
-                  <div className="text-xl font-extrabold text-[#8B5CF6] font-mono mt-1">Lvl {p.stat}</div>
-                  <span className="text-[8px] text-slate-500 font-mono mt-1">BREAKTHROUGH STABLE</span>
+                  {/* Level tracker tag revealed on hover */}
+                  <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-3 text-center transition-all duration-300 opacity-0 group-hover:opacity-100 z-20">
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest">{p.path} Path Level</span>
+                    <div className="text-xl font-extrabold text-[#8B5CF6] font-mono mt-1">Lvl {p.stat}</div>
+                    <span className="text-[8px] text-slate-500 font-mono mt-1">BREAKTHROUGH STABLE</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div id="dashboard-grid" className="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -1487,13 +1556,43 @@ export default function DashboardPage() {
 
               {/* Quest Matrix (7 Daily Tasks) */}
               <div id="gameplay-board" className="glass-panel p-6 md:p-8">
-                <h2 className="text-xl font-bold text-white mb-6">Quest Matrix (7 Daily Tasks)</h2>
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center space-x-2">
+                  {(() => {
+                    const pathColors: Record<string, { label: string; color: string }> = {
+                      SCHOLAR: { label: 'Scholar', color: 'text-[#60A5FA]' },
+                      WARRIOR: { label: 'Warrior', color: 'text-[#22C55E]' },
+                      SAGE: { label: 'Sage', color: 'text-[#2DD4BF]' },
+                      CREATOR: { label: 'Creator', color: 'text-[#F59E0B]' },
+                    };
+                    const pInfo = profile?.chosenPath ? pathColors[profile.chosenPath.toUpperCase()] : null;
+                    return (
+                      <>
+                        <span className={pInfo ? pInfo.color : 'text-[#8B5CF6]'}>
+                          {pInfo ? `${pInfo.label} Path:` : 'Quest Matrix:'}
+                        </span>
+                        <span>7 Daily Tasks</span>
+                      </>
+                    );
+                  })()}
+                </h2>
                 <div className="space-y-4">
                   {quests.filter(uq => !shadows.some(s => s.questId === uq.questId && s.active)).map((uq) => (
                     <div key={uq.id} className="p-4 rounded-xl border border-slate-800 bg-slate-900/30 flex justify-between items-center">
                       <div>
                         <div className="flex items-center space-x-2">
-                          <span className="text-[10px] font-bold text-[#8B5CF6] uppercase tracking-widest">{uq.quest.path} • {uq.quest.difficulty}</span>
+                          {uq.quest.title.includes('Calm Reset') || uq.quest.title.includes('Box Breathing') || uq.quest.tags?.includes('recovery') ? (
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                              Recovery
+                            </span>
+                          ) : uq.quest.path === 'BOSS' || uq.quest.title.toLowerCase().includes('boss') || uq.quest.tags?.includes('boss') ? (
+                            <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                              Boss
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+                              {uq.quest.difficulty}
+                            </span>
+                          )}
                           {uq.isHighTier && (
                             <span className="text-[8px] font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.2 rounded-full uppercase font-mono">
                               ⚓ Main Anchor

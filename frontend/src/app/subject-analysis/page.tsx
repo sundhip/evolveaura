@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiRequest } from '../../lib/api';
+import { useRequirePath } from '../../lib/useRequirePath';
 import { BookOpen, Award, CheckCircle2, ChevronRight, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 export default function SubjectAnalysisPage() {
@@ -14,6 +15,7 @@ export default function SubjectAnalysisPage() {
   const [problemSolving, setProblemSolving] = useState(50);
   const [confidence, setConfidence] = useState(50);
   const [loading, setLoading] = useState(true);
+  const { checking: pathChecking } = useRequirePath();
 
   async function loadSubjects() {
     try {
@@ -52,7 +54,7 @@ export default function SubjectAnalysisPage() {
     }
   };
 
-  if (loading) {
+  if (loading || pathChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white bg-[#0F172A]">
         <div className="text-center space-y-4">

@@ -18,7 +18,12 @@ build/
 .env.test.local
 .env.production.local
 .env.production
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env*.local
 
 # System files
 .DS_Store
 Thumbs.db
+.vite/

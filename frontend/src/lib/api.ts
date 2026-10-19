@@ -30,3 +30,27 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   }
   return data;
 }
+
+export async function determinePostAuthRoute(user?: any): Promise<string> {
+  try {
+    const status = await apiRequest('/assessment/status');
+    if (status.hasCompletedAssessment) {
+      let chosenPath = user?.profile?.chosenPath;
+      if (!chosenPath) {
+        try {
+          const profileData = await apiRequest('/auth/profile');
+          chosenPath = profileData?.profile?.chosenPath;
+        } catch {
+          // ignore
+        }
+      }
+      return chosenPath ? '/dashboard' : '/choose-path';
+    }
+  } catch {
+    // If status check fails, fallback to profile check
+  }
+
+  const profile = user?.profile;
+  const isProfileIncomplete = !profile || !profile.name || !profile.role || !profile.primaryGoal;
+  return isProfileIncomplete ? '/onboarding' : '/assessment';
+}

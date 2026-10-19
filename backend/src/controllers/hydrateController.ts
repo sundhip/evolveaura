@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import prisma from '../config/db';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { getDynamicChallenge, getDifficultyMultiplier } from '../services/questEngine';
+import { generateDailyQuestsForUser, getDynamicChallenge, getDifficultyMultiplier } from '../services/questEngine';
 
 function getClientLocalDateStr(date: Date, offsetMinutes: number): string {
   const localMs = date.getTime() - (offsetMinutes * 60 * 1000);
@@ -37,6 +37,9 @@ export const hydrateDashboard = async (req: AuthRequest, res: Response) => {
     // Find profile
     const profile = await prisma.profile.findUnique({ where: { userId } });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    if (!profile.chosenPath) {
+      return res.status(409).json({ error: 'PATH_NOT_CHOSEN', message: 'User has not chosen a path' });
+    }
 
     const offset = timezoneOffset !== undefined ? Number(timezoneOffset) : 0;
     let todayStr = clientDate;
@@ -122,23 +125,6 @@ export const hydrateDashboard = async (req: AuthRequest, res: Response) => {
           }
         });
 
-        // Migrate unresolved tasks to today (carry forward), keeping only one instance per unique questId
-        const migratedQuestIds = new Set<string>();
-        for (const uq of pendingQuests) {
-          if (!migratedQuestIds.has(uq.questId)) {
-            migratedQuestIds.add(uq.questId);
-            await prisma.userQuest.update({
-              where: { id: uq.id },
-              data: { date: today }
-            });
-          } else {
-            // Delete duplicate pending quest to prevent database clutter
-            await prisma.userQuest.delete({
-              where: { id: uq.id }
-            });
-          }
-        }
-
         await prisma.xPLog.create({
           data: {
             userId,
@@ -207,119 +193,8 @@ export const hydrateDashboard = async (req: AuthRequest, res: Response) => {
         }
       }
 
-      // 4. Generate 7 new daily quests for today, excluding active shadows and carried forward tasks
-      const activeShadowsAfterShatter = await prisma.shadowSoldier.findMany({
-        where: { userId, active: true }
-      });
-      const shadowQuestIds = new Set(activeShadowsAfterShatter.map(s => s.questId));
-      const seenIds = new Set<string>();
-      
-      // Prevent duplicating carried forward tasks
-      pendingQuests.forEach(uq => seenIds.add(uq.questId));
-      shadowQuestIds.forEach(id => seenIds.add(id));
-
-      const templates = await prisma.quest.findMany();
-
-      const latestAss = await prisma.assessment.findFirst({
-        where: { userId },
-        orderBy: { completedAt: 'desc' }
-      });
-      const bottleneck = latestAss ? latestAss.bottleneck.toUpperCase() : 'SCHOLAR';
-
-      const seed = `${userId}-${todayStr}`;
-      
-      const scholarPool = templates.filter(q => q.path === 'SCHOLAR' && !shadowQuestIds.has(q.id));
-      const warriorPool = templates.filter(q => q.path === 'WARRIOR' && !shadowQuestIds.has(q.id));
-      const sagePool = templates.filter(q => q.path === 'SAGE' && !shadowQuestIds.has(q.id));
-      const creatorPool = templates.filter(q => q.path === 'CREATOR' && !shadowQuestIds.has(q.id));
-
-      const shufScholar = seededShuffle(scholarPool, seed + '-scholar');
-      const shufWarrior = seededShuffle(warriorPool, seed + '-warrior');
-      const shufSage = seededShuffle(sagePool, seed + '-sage');
-      const shufCreator = seededShuffle(creatorPool, seed + '-creator');
-
-      const pools: Record<string, any[]> = {
-        SCHOLAR: shufScholar,
-        WARRIOR: shufWarrior,
-        SAGE: shufSage,
-        CREATOR: shufCreator
-      };
-
-      const selectedQuests: any[] = [];
-      const bottleneckPool = pools[bottleneck] || shufScholar;
-      selectedQuests.push(...bottleneckPool.slice(0, 3));
-
-      Object.keys(pools).forEach((path) => {
-        if (path !== bottleneck) {
-          const pool = pools[path];
-          if (pool && pool.length > 0) {
-            selectedQuests.push(pool[0]);
-          }
-        }
-      });
-
-      let dynamicQuest = await prisma.quest.findFirst({ where: { title: dynChallenge.title } });
-      if (!dynamicQuest) {
-        dynamicQuest = await prisma.quest.create({
-          data: {
-            title: dynChallenge.title,
-            description: dynChallenge.desc,
-            path: dynChallenge.path,
-            difficulty: "MEDIUM",
-            xpReward: 100,
-            verificationType: "ACTION"
-          }
-        });
-      }
-      if (!shadowQuestIds.has(dynamicQuest.id)) {
-        selectedQuests.push(dynamicQuest);
-      }
-
-      const finalQuests: any[] = [];
-      for (const q of selectedQuests) {
-        if (!seenIds.has(q.id)) {
-          seenIds.add(q.id);
-          finalQuests.push(q);
-        }
-      }
-
-      // Fill up to 7 if needed
-      if (finalQuests.length < 7) {
-        const allShuffled = seededShuffle(templates, seed + '-all');
-        for (const q of allShuffled) {
-          if (finalQuests.length >= 7) break;
-          if (!seenIds.has(q.id) && !shadowQuestIds.has(q.id)) {
-            seenIds.add(q.id);
-            finalQuests.push(q);
-          }
-        }
-      }
-
-      const finalSeven = finalQuests.slice(0, 7);
-
-      for (let i = 0; i < finalSeven.length; i++) {
-        const q = finalSeven[i];
-        const alreadyExists = await prisma.userQuest.findFirst({
-          where: {
-            userId,
-            questId: q.id,
-            date: today
-          }
-        });
-        if (!alreadyExists) {
-          await prisma.userQuest.create({
-            data: {
-              userId,
-              questId: q.id,
-              date: today,
-              isHighTier: i === 0,
-              proofType: i === 0 ? 'NOTE' : null
-            }
-          });
-        }
-      }
-
-
+      // 4. Generate path-locked daily quests for today
+      await generateDailyQuestsForUser(userId, today, todayStr);
     }
 
     // Check fatigue lockout limits on load
@@ -329,6 +204,9 @@ export const hydrateDashboard = async (req: AuthRequest, res: Response) => {
     } catch (fatigueErr) {
       console.warn('Failed to check fatigue in hydration:', fatigueErr);
     }
+
+    // Ensure daily path-locked quests are populated for today
+    await generateDailyQuestsForUser(userId, today, todayStr);
 
     // Always fetch user's quests for today
     const userQuests = await prisma.userQuest.findMany({

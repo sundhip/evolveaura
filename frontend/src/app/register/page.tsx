@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiRequest } from '../../lib/api';
+import { apiRequest, determinePostAuthRoute } from '../../lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,11 +34,12 @@ export default function RegisterPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      if (data.user.profile && data.user.profile.auraScore > 0) {
+      const targetRoute = await determinePostAuthRoute(data.user);
+      if (targetRoute === '/dashboard') {
         router.push('/dashboard');
       } else {
         localStorage.setItem('shouldShowTour', 'true');
-        router.push('/onboarding');
+        router.push(targetRoute);
       }
     } catch (err: any) {
       setError(err.message || 'Google Authentication failed');
@@ -141,8 +142,14 @@ export default function RegisterPage() {
       });
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('shouldShowTour', 'true');
-      router.push('/onboarding');
+      
+      const targetRoute = await determinePostAuthRoute(data.user);
+      if (targetRoute === '/dashboard') {
+        router.push('/dashboard');
+      } else {
+        localStorage.setItem('shouldShowTour', 'true');
+        router.push(targetRoute);
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

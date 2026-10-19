@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import prisma from '../config/db';
+import { env } from '../config/env';
 import { AuthRequest } from '../middleware/authMiddleware';
 
 export const register = async (req: AuthRequest, res: Response) => {
@@ -29,7 +30,7 @@ export const register = async (req: AuthRequest, res: Response) => {
       include: { profile: true }
     });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user: { id: user.id, email: user.email, profile: user.profile } });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -47,7 +48,7 @@ export const login = async (req: AuthRequest, res: Response) => {
       if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, email: user.email, profile: user.profile } });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -56,63 +57,45 @@ export const login = async (req: AuthRequest, res: Response) => {
 
 export const googleLogin = async (req: AuthRequest, res: Response) => {
   try {
-    const { email: bodyEmail, name: bodyName, googleId: bodyGoogleId, credential, accessToken } = req.body;
-    let email = bodyEmail;
-    let name = bodyName;
-    let googleId = bodyGoogleId;
+    if (!env.GOOGLE_CLIENT_ID) {
+      return res.status(503).json({ error: 'Google authentication is not configured' });
+    }
 
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const { credential, accessToken } = req.body;
+    let email: string | undefined;
+    let name: string | undefined;
+    let googleId: string | undefined;
+
+    const clientId = env.GOOGLE_CLIENT_ID;
 
     if (credential) {
-      if (clientId) {
-        // Real Google verification using official SDK for ID Token
-        const client = new OAuth2Client(clientId);
-        const ticket = await client.verifyIdToken({
-          idToken: credential,
-          audience: clientId,
-        });
-        const payload = ticket.getPayload();
-        if (!payload) {
-          return res.status(400).json({ error: 'Invalid Google ID token payload' });
-        }
-        email = payload.email;
-        name = payload.name || payload.given_name || 'Google User';
-        googleId = payload.sub;
-      } else {
-        // Fallback: decode JWT without verification (sandbox mode)
-        try {
-          const parts = credential.split('.');
-          if (parts.length === 3) {
-            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
-            email = payload.email;
-            name = payload.name || payload.given_name || 'Google User';
-            googleId = payload.sub;
-          }
-        } catch (e) {
-          console.warn('Failed to parse credential JWT, falling back to body parameters:', e);
-        }
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: clientId,
+      });
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email || !payload.sub) {
+        return res.status(400).json({ error: 'Invalid Google ID token payload' });
       }
+      email = payload.email;
+      name = payload.name || payload.given_name || 'Google User';
+      googleId = payload.sub;
     } else if (accessToken) {
-      if (clientId) {
-        // Real Google verification using official SDK for Access Token
-        const client = new OAuth2Client(clientId);
-        client.setCredentials({ access_token: accessToken });
-        const userInfoResponse = await client.request<any>({
-          url: 'https://www.googleapis.com/oauth2/v3/userinfo'
-        });
-        const payload = userInfoResponse.data;
-        if (!payload || !payload.email) {
-          return res.status(400).json({ error: 'Failed to retrieve user info from Google' });
-        }
-        email = payload.email;
-        name = payload.name || payload.given_name || 'Google User';
-        googleId = payload.sub;
-      } else {
-        // Fallback sandbox
-        email = bodyEmail || 'sandbox@domain.com';
-        name = bodyName || 'Sandbox User';
-        googleId = bodyGoogleId || 'sandbox-google-id';
+      const client = new OAuth2Client(clientId);
+      client.setCredentials({ access_token: accessToken });
+      const userInfoResponse = await client.request<any>({
+        url: 'https://www.googleapis.com/oauth2/v3/userinfo'
+      });
+      const payload = userInfoResponse.data;
+      if (!payload || !payload.email || !payload.sub) {
+        return res.status(400).json({ error: 'Failed to retrieve user info from Google' });
       }
+      email = payload.email;
+      name = payload.name || payload.given_name || 'Google User';
+      googleId = payload.sub;
+    } else {
+      return res.status(400).json({ error: 'Google credential or access token is required' });
     }
 
     if (!email || !googleId) {
@@ -147,7 +130,7 @@ export const googleLogin = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, email: user.email, profile: user.profile } });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -160,7 +143,22 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
       where: { id: req.userId },
       include: { profile: true, projects: true }
     });
-    res.json(user);
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const pathChangeUnlocksAt = user.profile?.pathChosenAt
+      ? new Date(user.profile.pathChosenAt.getTime() + 7 * 24 * 60 * 60 * 1000)
+      : null;
+
+    res.json({
+      ...user,
+      profile: user.profile
+        ? {
+            ...user.profile,
+            pathChangeUnlocksAt,
+          }
+        : null,
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

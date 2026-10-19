@@ -16,12 +16,19 @@ model User {
   updatedAt     DateTime          @updatedAt
   profile       Profile?
   assessments   Assessment[]
+  attempts      AssessmentAttempt[]
   subjectScores SubjectScore[]
   quests        UserQuest[]
   xpLogs        XPLog[]
   bossProgress  UserBossProgress[]
   projects      PersonalProject[]
   shadows       ShadowSoldier[]
+  pathChoiceLogs PathChoiceLog[]
+  quitProfile    QuitProfile?
+  quitCheckIns   QuitCheckIn[]
+  quitCravings   QuitCraving[]
+  quitLapses     QuitLapse[]
+  quitBadges     QuitBadge[]
 }
 
 model Profile {
@@ -60,6 +67,9 @@ model Profile {
   levelLocked     Boolean  @default(false)
   examActive      Boolean  @default(false)
   examChallengeStartedAt DateTime?
+  chosenPath      String?
+  pathChosenAt    DateTime?
+  pathChangeCount Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -68,6 +78,7 @@ model Assessment {
   id            String   @id @default(uuid())
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attemptId     String?
   answers       Json
   scholarScore  Float
   warriorScore  Float
@@ -76,6 +87,8 @@ model Assessment {
   auraScore     Float
   auraRank      String
   bottleneck    String
+  suggestedPath String?
+  suggestionJson Json?
   completedAt   DateTime @default(now())
 }
 
@@ -95,12 +108,14 @@ model SubjectScore {
 
 model Quest {
   id               String      @id @default(uuid())
-  title            String
+  title            String      @unique
   description      String
   path             String      // SCHOLAR, WARRIOR, SAGE, CREATOR, MAIN, BOSS, BONUS
   difficulty       String      // EASY, MEDIUM, HARD, ELITE
   xpReward         Int
   verificationType String      // TIMER, WALKING, REFLECTION, ACTION
+  tags             String?
+  minRank          String?
   userQuests       UserQuest[]
   shadowSoldiers   ShadowSoldier[]
 }
@@ -118,6 +133,9 @@ model UserQuest {
   timerStartedAt DateTime?
   proofType   String?
   isHighTier  Boolean   @default(false)
+
+  @@unique([userId, questId, date])
+  @@index([userId, date])
 }
 
 model Boss {
@@ -226,3 +244,155 @@ model Duel {
   opponentStance   String? // "BERSERKER", "FOCUS", "NONE"
   createdAt      DateTime @default(now())
 }
+
+model AssessmentQuestion {
+  id            String                  @id @default(uuid())
+  path          String                  // SCHOLAR|WARRIOR|SAGE|CREATOR
+  text          String                  @unique
+  theme         String                  // short sub-skill tag, e.g. "deep-focus", "sleep", "stress-regulation", "project-output"
+  reverseScored Boolean                 @default(false)
+  active        Boolean                 @default(true)
+  createdAt     DateTime                @default(now())
+  attemptItems  AssessmentAttemptItem[]
+}
+
+model AssessmentAttempt {
+  id          String                  @id @default(uuid())
+  userId      String
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String                  @default("ISSUED") // ISSUED|SUBMITTED|EXPIRED
+  issuedAt    DateTime                @default(now())
+  expiresAt   DateTime
+  submittedAt DateTime?
+  items       AssessmentAttemptItem[]
+
+  @@index([userId, issuedAt])
+}
+
+model AssessmentAttemptItem {
+  id         String             @id @default(uuid())
+  attemptId  String
+  attempt    AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   AssessmentQuestion @relation(fields: [questionId], references: [id])
+  position   Int
+  answer     Int?
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+}
+
+model PathChoiceLog {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromPath           String?
+  toPath             String
+  suggestedPath      String?
+  followedSuggestion Boolean
+  createdAt          DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model QuitProfile {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consentAt         DateTime
+  ageConfirmed18    Boolean
+  status            String    // ASSESSING, PLANNING, QUIT_DATE_SET, ACTIVE, MAINTENANCE, PAUSED
+  ftndScore         Int?
+  dependenceLevel   String?
+  readiness         String?   // NOT_READY, THINKING, PREPARING, ACTION
+  cigarettesPerDay  Int?
+  costPerPackInr    Float?
+  cigarettesPerPack Int       @default(20)
+  reasons           Json?
+  triggers          Json?
+  usualSmokingTimes Json?
+  approach          String?   // GRADUAL, QUIT_DATE
+  quitDate          DateTime?
+  taperPlan         Json?
+  savingsGoalItem   String?
+  savingsGoalAmount Float?
+  remindersEnabled  Boolean   @default(false)
+  smokingTimeReminders Json?
+  checkInReminderTime String?
+  streakShieldCount Int       @default(0)
+  lastShieldUsedAt  DateTime?
+  startedAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model QuitCheckIn {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime  @db.Date
+  cigarettesSmoked Int
+  cravingPeak      Int       // 0-10
+  mood             Int       // 1-5
+  triggersHit      Json?
+  note             String?
+  createdAt        DateTime  @default(now())
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model QuitCraving {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  intensityBefore Int
+  intensityAfter  Int?
+  toolUsed        String    // BREATHE, DELAY, WATER, DISTRACT, WALK
+  survived        Boolean?
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model QuitLapse {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurredAt DateTime  @default(now())
+  cigarettes Int
+  trigger    String?
+  note       String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model QuitBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeKey  String
+  title     String
+  description String
+  earnedAt  DateTime @default(now())
+
+  @@unique([userId, badgeKey])
+  @@index([userId])
+}
+
+model QuitMetricDaily {
+  id               String   @id @default(uuid())
+  date             DateTime @unique @db.Date
+  newStarts        Int      @default(0)
+  checkInsCount    Int      @default(0)
+  cravingsSurvived Int      @default(0)
+  lapsesLogged     Int      @default(0)
+  activeUsers      Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+

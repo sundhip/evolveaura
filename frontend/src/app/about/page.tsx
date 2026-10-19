@@ -42,6 +42,44 @@ export default function AboutPage() {
             <p className="text-slate-400 text-xs leading-relaxed">Unlocks curiosity, writing logs, blueprints layout drafts, and execution rates for personal projects.</p>
           </div>
         </div>
+
+        {/* How Assessments & Path Purity Work */}
+        <div className="glass-panel p-8 space-y-4 border border-slate-800">
+          <h2 className="text-xl font-bold text-white">Assessment Freshness & Path Purity</h2>
+          <div className="space-y-3 text-slate-350 text-xs sm:text-sm leading-relaxed">
+            <p>
+              • <strong>Adaptive Question Sampling:</strong> Every assessment serves 16 questions (4 per path) sampled with freshness exclusion across your last 3 attempts, preventing memorization and test fatigue.
+            </p>
+            <p>
+              • <strong>Objective Scoring & Bottleneck Detection:</strong> Answers are calibrated on a 0–100 scale across all 4 archetypes. The system identifies your lowest scoring dimension as your bottleneck and suggests the highest-impact path.
+            </p>
+            <p>
+              • <strong>7-Day Path Commitment:</strong> To develop genuine habit resilience and prevent decision fatigue, choosing a path locks daily quests strictly to that archetype for 7 days before allowing a switch.
+            </p>
+          </div>
+        </div>
+
+        {/* Smoke-Free Path Evidence Base */}
+        <div className="glass-panel p-8 space-y-4 border border-emerald-500/30 bg-emerald-950/10">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <span>The Smoke-Free Path (Evidence-Based Cessation)</span>
+          </h2>
+          <div className="space-y-3 text-slate-350 text-xs sm:text-sm leading-relaxed">
+            <p>
+              The Smoke-Free Path is grounded in behavioral health research from official Tobacco Cessation Clinics (Kaushik et al., 2023, 2025; J Family Med Prim Care 2023). Studies reveal that follow-up and daily self-monitoring are the single most critical factors for sustained cessation.
+            </p>
+            <p>
+              • <strong>Honest Non-Judgmental Gamification:</strong> Slips and honest logs earn XP bonuses. Bosses never heal on lapses.
+            </p>
+            <p>
+              • <strong>Zero Health-Data Leakage:</strong> Tobacco habits are kept completely private from public leaderboards, duel stats, and general profile views.
+            </p>
+            <p>
+              • <strong>Verified National Support:</strong> In emergencies, free confidential counseling is available via the National Tobacco Quitline at <strong>1800-11-2356</strong> and Tele-MANAS at <strong>14416</strong>.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

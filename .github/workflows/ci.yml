@@ -1,0 +1,74 @@
+name: EvolveAura CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-checks:
+    name: Backend Type-Check, Lint & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Backend TypeScript Check
+        working-directory: backend
+        run: npx tsc --noEmit
+
+      - name: Run Backend Unit Tests
+        working-directory: backend
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/testdb"
+          JWT_SECRET: "ci_test_super_secret_jwt_key_at_least_32_characters_long"
+          NODE_ENV: "test"
+        run: npx vitest run src/services/__tests__
+
+  frontend-checks:
+    name: Frontend Type-Check, Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend TypeScript Check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Frontend Linting
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Frontend Next.js Production Build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: "http://localhost:5000/api"
+        run: npm run build

@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
 
 const FAQS = [
-  { q: "Is EvolveAura completely free of cost?", a: "Yes, EvolveAura is 100% free of charge. There are no subscriptions, paywalls, or hidden costs. It is built as a utility for digital health." },
-  { q: "What is an Aura Shield?", a: "Aura Shields protect your streak from resetting. If you complete a 7-day streak, you get 1 Aura Shield. If you miss a day, the shield is consumed automatically to maintain your daily streak." },
-  { q: "How do Focus Forests work?", a: "Focus Forest gives visual proof of consistency. Every Pomodoro study session plants a sapling. Completing multiple sessions builds small trees and eventually clusters into your Forest." },
-  { q: "How do I deal damage to Bosses?", a: "Bosses represent bad habits. You deal damage to the active Boss by completing focus blocks (25 min focus = 100 damage), submitting reflections, and completing daily quests." }
+  { q: "Is EvolveAura completely free of cost?", a: "Yes, EvolveAura is 100% free of charge. There are no subscriptions, paywalls, or hidden costs. It is built as a public utility for digital health." },
+  { q: "How do assessment questions refresh over time?", a: "Each assessment serves 16 questions (4 per path). The assessment engine automatically excludes questions you answered in your last 3 attempts, ensuring you receive fresh behavioral scenarios every time you take it." },
+  { q: "Why is there a 7-day lock when I choose a path?", a: "Behavioral science demonstrates that constant context switching prevents habit crystallization. Locking your chosen path for 7 days ensures you receive pure, focused daily quests aligned with your core archetype before re-evaluating." },
+  { q: "What is an Aura Shield?", a: "Aura Shields protect your streak from resetting. If you complete a 7-day streak or reach smoke-free milestones (days 3, 7, 14), you earn an Aura Shield. If life gets in the way or you slip, the shield absorbs the disruption to maintain your momentum." },
+  { q: "Is the Smoke-Free Path really confidential?", a: "Yes, completely. Your smoking history, craving logs, and check-in entries are stored in isolated tables. They are NEVER shared on leaderboards, profile badges, duels, or social feeds. You can export or permanently delete your quit data at any time." },
+  { q: "What evidence is the Smoke-Free Path based on?", a: "It is modeled on findings from official Tobacco Cessation Clinics (Kaushik et al., 2023, 2025; J Family Med Prim Care 2023), which found that regular follow-up and daily self-monitoring are the single biggest predictors of long-term success. Slips are treated non-judgmentally with honesty bonuses." },
+  { q: "How do I deal damage to Bosses?", a: "Bosses represent negative habits. You deal damage to the active Boss by completing focus blocks (25 min focus = 100 damage), submitting reflections, completing daily quests, and surviving cravings. For the Nicotine Shade recovery boss, healthy actions deal damage, and slips NEVER heal the boss." }
 ];
 
 export default function FAQPage() {

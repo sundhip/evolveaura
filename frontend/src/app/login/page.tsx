@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiRequest } from '../../lib/api';
+import { apiRequest, determinePostAuthRoute } from '../../lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,11 +33,8 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      if (data.user.profile && data.user.profile.auraScore > 0) {
-        router.push('/dashboard');
-      } else {
-        router.push('/onboarding');
-      }
+      const targetRoute = await determinePostAuthRoute(data.user);
+      router.push(targetRoute);
     } catch (err: any) {
       setError(err.message || 'Google Authentication failed');
     } finally {
@@ -140,11 +137,8 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
-      if (data.user.profile && data.user.profile.auraScore > 0) {
-        router.push('/dashboard');
-      } else {
-        router.push('/onboarding');
-      }
+      const targetRoute = await determinePostAuthRoute(data.user);
+      router.push(targetRoute);
     } catch (err: any) {
       setError(err.message || 'Failed to login');
     } finally {
