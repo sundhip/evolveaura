@@ -758,6 +758,11 @@ export default function DashboardPage() {
   // Find Crisis Quest for Recovery Mode View
   const recoveryCrisisQuest = quests.find(q => q.quest.title.includes("Calm Reset") || q.quest.title.includes("Breathe")) || quests.find(q => !q.completed);
 
+  // Check smoking status to conditionally show Smoke-Free path in dashboard
+  const isLocalNonSmoker = typeof window !== 'undefined' && localStorage.getItem('user_is_smoker') === 'false';
+  const isLocalSmoker = typeof window !== 'undefined' && localStorage.getItem('user_is_smoker') === 'true';
+  const showQuitSmoking = !isLocalNonSmoker && (profile?.isSmoker === true || isLocalSmoker);
+
   return (
     <div className={`min-h-screen pb-12 transition-colors duration-700 text-slate-300 relative ${
       isWeekendEnraged 
@@ -808,9 +813,11 @@ export default function DashboardPage() {
             <Link onMouseEnter={handleHoverTick} href="/choose-path" className="text-slate-400 hover:text-white transition">
               Switch Path
             </Link>
-            <Link onMouseEnter={handleHoverTick} href="/quit" className="text-emerald-400 hover:text-emerald-300 font-semibold transition flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Smoke-Free
-            </Link>
+            {showQuitSmoking && (
+              <Link onMouseEnter={handleHoverTick} href="/quit" className="text-emerald-400 hover:text-emerald-300 font-semibold transition flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Smoke-Free
+              </Link>
+            )}
             <button onMouseEnter={handleHoverTick} onClick={() => { setActiveTourSteps(DASHBOARD_TOUR_STEPS); setShowTour(true); }} className="text-slate-400 hover:text-white font-medium transition cursor-pointer">Tour</button>
             <button onMouseEnter={handleHoverTick} onClick={handleSignOut} className="text-red-400 hover:text-red-300 font-bold transition flex items-center cursor-pointer">
               <LogOut className="w-4 h-4 mr-1" /> Sign Out
@@ -1035,40 +1042,42 @@ export default function DashboardPage() {
           })}
 
           {/* Smoke-Free Path Quick Access Banner */}
-          <div className="max-w-6xl mx-auto px-4 mt-6">
-            <div className="glass-panel p-4 border border-emerald-500/30 bg-emerald-950/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-bold text-sm">Smoke-Free Path</span>
-                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                      TCC Self-Help
-                    </span>
+          {showQuitSmoking && (
+            <div className="max-w-6xl mx-auto px-4 mt-6">
+              <div className="glass-panel p-4 border border-emerald-500/30 bg-emerald-950/20 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Track smoke-free streaks, ride cravings with 5 rapid tools, and protect cardiorespiratory health.
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold text-sm">Smoke-Free Path</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                        TCC Self-Help
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Track smoke-free streaks, ride cravings with 5 rapid tools, and protect cardiorespiratory health.
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
-                <Link
-                  href="/quit/sos"
-                  className="flex-1 sm:flex-none text-center px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition"
-                >
-                  Craving SOS
-                </Link>
-                <Link
-                  href="/quit"
-                  className="flex-1 sm:flex-none text-center px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-md shadow-emerald-950/40"
-                >
-                  Open Path →
-                </Link>
+                <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+                  <Link
+                    href="/quit/sos"
+                    className="flex-1 sm:flex-none text-center px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold transition"
+                  >
+                    Craving SOS
+                  </Link>
+                  <Link
+                    href="/quit"
+                    className="flex-1 sm:flex-none text-center px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition shadow-md shadow-emerald-950/40"
+                  >
+                    Open Path →
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Four Paths Archetype Row */}
           <div id="archetype-cards-container" className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 max-w-6xl mx-auto px-4">

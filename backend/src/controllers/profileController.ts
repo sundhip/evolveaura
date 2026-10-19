@@ -194,3 +194,26 @@ export const choosePath = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const updateSmokingStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { isSmoker } = req.body;
+    if (typeof isSmoker !== 'boolean') {
+      return res.status(400).json({ error: 'isSmoker must be a boolean' });
+    }
+
+    const updatedProfile = await prisma.profile.update({
+      where: { userId },
+      data: { isSmoker },
+    });
+
+    res.json({
+      success: true,
+      isSmoker: updatedProfile.isSmoker,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

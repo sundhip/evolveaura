@@ -45,7 +45,7 @@ export const getAssessmentStatus = async (req: AuthRequest, res: Response) => {
 export const submitAssessment = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { attemptId, answers } = req.body;
+    const { attemptId, answers, isSmoker } = req.body;
 
     if (!attemptId || !answers || typeof answers !== 'object' || Array.isArray(answers)) {
       return res.status(400).json({ error: 'attemptId and answers object are required' });
@@ -181,13 +181,17 @@ export const submitAssessment = async (req: AuthRequest, res: Response) => {
       });
 
       // Update Profile
+      const profileData: any = {
+        auraScore,
+        auraRank,
+        equippedTitle: `Aura ${auraRank} Initiate`,
+      };
+      if (typeof isSmoker === 'boolean') {
+        profileData.isSmoker = isSmoker;
+      }
       await tx.profile.update({
         where: { userId },
-        data: {
-          auraScore,
-          auraRank,
-          equippedTitle: `Aura ${auraRank} Initiate`,
-        },
+        data: profileData,
       });
 
       return assessment;

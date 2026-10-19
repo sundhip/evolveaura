@@ -70,6 +70,7 @@ model Profile {
   chosenPath      String?
   pathChosenAt    DateTime?
   pathChangeCount Int      @default(0)
+  isSmoker        Boolean? @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
