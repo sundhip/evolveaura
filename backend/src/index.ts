@@ -83,6 +83,22 @@ app.use(errorHandler);
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log('[EvolveAura Backend V2] Server running on port ' + PORT);
+
+    // Keep-alive heartbeat: prevents Render free tier from sleeping after 15 minutes of inactivity
+    const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || process.env.KEEP_ALIVE_URL || process.env.BACKEND_URL;
+    if (keepAliveUrl && !keepAliveUrl.includes('localhost')) {
+      const pingEndpoint = `${keepAliveUrl.replace(/\/+$/, '')}/health`;
+      console.log(`[Keep-Alive] Initialized self-ping heartbeat targeting ${pingEndpoint} every 10 minutes.`);
+
+      setInterval(async () => {
+        try {
+          const res = await fetch(pingEndpoint);
+          console.log(`[Keep-Alive] Heartbeat ping sent: ${res.status} at ${new Date().toISOString()}`);
+        } catch (pingErr: any) {
+          console.warn(`[Keep-Alive] Heartbeat ping failed: ${pingErr?.message}`);
+        }
+      }, 10 * 60 * 1000); // 10 minutes interval
+    }
   });
 }
 

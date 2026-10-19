@@ -1,6 +1,8 @@
 import './globals.css';
 import React from 'react';
 
+import BackendWarmup from '../components/BackendWarmup';
+
 export const metadata = {
   title: 'EvolveAura | Stop Scrolling. Start Evolving.',
   description: 'A psychology-driven digital detox platform to replace short-form media addiction with real life progress.',
@@ -17,6 +19,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body>
+        <BackendWarmup />
         <div className="min-h-screen relative overflow-x-clip bg-[#0F172A]">
           {/* Global Background Glow */}
           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#8B5CF6] opacity-[0.03] blur-[150px] pointer-events-none" />
