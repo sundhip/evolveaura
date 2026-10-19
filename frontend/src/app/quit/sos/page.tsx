@@ -15,7 +15,8 @@ import {
   Eye,
   CheckCircle2,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function QuitSosPage() {
@@ -124,12 +125,21 @@ export default function QuitSosPage() {
       <div className="max-w-2xl mx-auto w-full">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between mb-6">
-          <Link
-            href="/quit"
-            className="text-xs text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1"
-          >
-            ← Back to Smoke-Free Hub
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Dashboard</span>
+            </Link>
+            <Link
+              href="/quit"
+              className="text-xs text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1"
+            >
+              ← Back to Smoke-Free Hub
+            </Link>
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Urge Intensity:</span>
             <div className="flex gap-1">

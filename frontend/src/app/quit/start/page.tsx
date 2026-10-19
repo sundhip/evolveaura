@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { QUIT_COPY } from '@/lib/quitCopy';
 import QuitFooter from '@/components/quit/QuitFooter';
-import { ShieldCheck, CheckCircle2, ChevronRight, AlertCircle } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, ChevronRight, AlertCircle, LayoutDashboard } from 'lucide-react';
 
 export default function QuitStartPage() {
   const router = useRouter();
@@ -142,6 +143,18 @@ export default function QuitStartPage() {
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto w-full">
+        {/* Navigation to Dashboard */}
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />
+            <span>← Back to Dashboard</span>
+          </Link>
+          <span className="text-xs text-slate-500 font-medium">Smoke-Free Setup</span>
+        </div>
+
         {/* Step Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between text-xs text-slate-400 mb-2 font-medium">

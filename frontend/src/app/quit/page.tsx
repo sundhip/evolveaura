@@ -18,7 +18,8 @@ import {
   AlertCircle,
   HelpCircle,
   ArrowRight,
-  LifeBuoy
+  LifeBuoy,
+  LayoutDashboard
 } from 'lucide-react';
 
 interface QuitProfile {
@@ -125,7 +126,14 @@ export default function QuitHubPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm transition shadow-sm hover:border-slate-600"
+            >
+              <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+              <span>Dashboard</span>
+            </Link>
             <Link
               href="/quit/sos"
               className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 font-medium text-sm transition-all shadow-lg shadow-amber-950/20"

@@ -1,6 +1,7 @@
 import React from 'react';
+import Link from 'next/link';
 import { QUIT_COPY } from '@/lib/quitCopy';
-import { ShieldCheck, PhoneCall } from 'lucide-react';
+import { ShieldCheck, PhoneCall, LayoutDashboard } from 'lucide-react';
 
 export default function QuitFooter() {
   return (
@@ -11,6 +12,13 @@ export default function QuitFooter() {
           <p>{QUIT_COPY.footerDisclaimer}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Dashboard</span>
+          </Link>
           <a
             href={`tel:${QUIT_COPY.quitlineHelpline}`}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"

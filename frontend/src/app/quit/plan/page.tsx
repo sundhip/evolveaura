@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { QUIT_COPY } from '@/lib/quitCopy';
@@ -13,7 +14,8 @@ import {
   CheckCircle2,
   ArrowRight,
   ShieldAlert,
-  ChevronDown
+  ChevronDown,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function QuitPlanPage() {
@@ -146,7 +148,14 @@ export default function QuitPlanPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs sm:text-sm font-medium transition-colors"
+            >
+              <LayoutDashboard className="w-4 h-4 text-emerald-400" />
+              <span>Dashboard</span>
+            </Link>
             <button
               onClick={handlePrint}
               type="button"
