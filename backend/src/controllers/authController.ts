@@ -43,10 +43,11 @@ export const login = async (req: AuthRequest, res: Response) => {
     const user = await prisma.user.findUnique({ where: { email }, include: { profile: true } });
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
 
-    if (user.passwordHash) {
-      const isMatch = await bcrypt.compare(password, user.passwordHash);
-      if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+    if (!user.passwordHash) {
+      return res.status(400).json({ error: 'This account was created with Google Sign-In. Please sign in with Google.' });
     }
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign({ userId: user.id }, env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, email: user.email, profile: user.profile } });

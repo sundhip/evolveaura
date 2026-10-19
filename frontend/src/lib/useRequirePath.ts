@@ -39,9 +39,12 @@ export function useRequirePath() {
           setProfile(userProfile);
           setChecking(false);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('useRequirePath check error:', err);
-        router.replace('/login');
+        const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+        if (!hasToken || err?.message?.includes('401')) {
+          router.replace('/login');
+        }
       }
     }
 

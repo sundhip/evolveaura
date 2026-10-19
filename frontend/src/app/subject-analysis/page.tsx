@@ -21,9 +21,12 @@ export default function SubjectAnalysisPage() {
     try {
       const data = await apiRequest('/subjects/analysis');
       setAnalysis(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      router.push('/login');
+      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+      if (!hasToken || err?.message?.includes('401') || err?.message?.includes('Unauthorized')) {
+        router.push('/login');
+      }
     } finally {
       setLoading(false);
     }

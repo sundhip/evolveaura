@@ -183,9 +183,10 @@ export default function ChoosePathPage() {
         body: JSON.stringify({ path: selectedPath }),
       });
       if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        window.location.href = '/dashboard';
+      } else {
+        router.push('/dashboard');
       }
-      router.push('/dashboard', { scroll: true });
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to set path');
       setSubmitting(false);

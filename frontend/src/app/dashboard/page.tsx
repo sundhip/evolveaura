@@ -181,7 +181,10 @@ export default function DashboardPage() {
         router.push('/choose-path');
         return;
       }
-      router.push('/login');
+      const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('token');
+      if (!hasToken || e?.message?.includes('401') || e?.message?.includes('Unauthorized')) {
+        router.push('/login');
+      }
     } finally {
       setLoading(false);
     }
