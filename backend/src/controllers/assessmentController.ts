@@ -81,9 +81,9 @@ export const submitAssessment = async (req: AuthRequest, res: Response) => {
     }
 
     // Validate that every issued question is answered exactly once with 1-5 integer, and no unknown questions
-    const issuedItemMap = new Map(attempt.items.map((it) => [it.questionId, it]));
+    const issuedItemMap = new Map<string, any>((attempt.items as any[]).map((it: any) => [it.questionId, it]));
 
-    const answerKeys = Object.keys(answers);
+    const answerKeys = Object.keys(answers as Record<string, any>);
     for (const qId of answerKeys) {
       if (!issuedItemMap.has(qId)) {
         return res.status(400).json({ error: `Unknown question id in answers: ${qId}` });
@@ -91,7 +91,7 @@ export const submitAssessment = async (req: AuthRequest, res: Response) => {
     }
 
     for (const [qId] of issuedItemMap) {
-      const val = answers[qId];
+      const val = (answers as Record<string, any>)[qId];
       if (val === undefined || val === null) {
         return res.status(400).json({ error: `Missing answer for question id: ${qId}` });
       }
@@ -101,10 +101,10 @@ export const submitAssessment = async (req: AuthRequest, res: Response) => {
     }
 
     // 1. Calculate path scores and theme scores from database attempt items
-    const scoredItems = attempt.items.map((item) => ({
+    const scoredItems = (attempt.items as any[]).map((item: any) => ({
       path: item.question.path,
       theme: item.question.theme,
-      answer: answers[item.questionId] as number,
+      answer: (answers as Record<string, any>)[item.questionId] as number,
       reverseScored: item.question.reverseScored,
     }));
 
@@ -145,10 +145,10 @@ export const submitAssessment = async (req: AuthRequest, res: Response) => {
     const now = new Date();
     const result = await prisma.$transaction(async (tx) => {
       // Update attempt items with answers
-      for (const item of attempt.items) {
-        await tx.assessmentAttemptItem.update({
+      for (const item of (attempt.items as any[])) {
+        await (tx as any).assessmentAttemptItem.update({
           where: { id: item.id },
-          data: { answer: answers[item.questionId] as number },
+          data: { answer: (answers as Record<string, any>)[item.questionId] as number },
         });
       }
 
@@ -218,8 +218,8 @@ export const getLatestAssessment = async (req: AuthRequest, res: Response) => {
 
     // Compute or retrieve suggestion
     let suggestion: PathSuggestionResult;
-    if (assessment.suggestionJson && typeof assessment.suggestionJson === 'object') {
-      suggestion = assessment.suggestionJson as unknown as PathSuggestionResult;
+    if ((assessment as any).suggestionJson && typeof (assessment as any).suggestionJson === 'object') {
+      suggestion = (assessment as any).suggestionJson as unknown as PathSuggestionResult;
     } else {
       const scores = {
         scholar: assessment.scholarScore,

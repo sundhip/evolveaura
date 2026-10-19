@@ -60,7 +60,7 @@ export async function issueAttempt(userId: string): Promise<IssuedAttemptResult>
     return {
       attemptId: existingAttempt.id,
       expiresAt: existingAttempt.expiresAt,
-      questions: existingAttempt.items.map((item) => ({
+      questions: (existingAttempt.items as any[]).map((item: any) => ({
         id: item.question.id,
         text: item.question.text,
         position: item.position,
@@ -118,9 +118,9 @@ export async function issueAttempt(userId: string): Promise<IssuedAttemptResult>
   const selectedQuestions: QuestionRecord[] = [];
 
   for (const path of paths) {
-    const pathQuestions = allActiveQuestions.filter((q) => q.path === path);
+    const pathQuestions = (allActiveQuestions as QuestionRecord[]).filter((q: QuestionRecord) => q.path === path);
     // Candidates not served in last 3 attempts
-    let candidates = pathQuestions.filter((q) => !excludedQuestionIds.has(q.id));
+    let candidates: QuestionRecord[] = pathQuestions.filter((q: QuestionRecord) => !excludedQuestionIds.has(q.id));
 
     // If fewer than 4 candidates, fall back to least recently served for that path
     if (candidates.length < 4) {
@@ -138,8 +138,8 @@ export async function issueAttempt(userId: string): Promise<IssuedAttemptResult>
     const pathPicked: QuestionRecord[] = [];
     const pickedIds = new Set<string>();
 
-    const reverseCandidates = cryptoShuffle(candidates.filter((q) => q.reverseScored));
-    const nonReverseCandidates = cryptoShuffle(candidates.filter((q) => !q.reverseScored));
+    const reverseCandidates: QuestionRecord[] = cryptoShuffle(candidates.filter((q: QuestionRecord) => q.reverseScored));
+    const nonReverseCandidates: QuestionRecord[] = cryptoShuffle(candidates.filter((q: QuestionRecord) => !q.reverseScored));
 
     // 1. Pick 1 reverse-scored question if available
     if (reverseCandidates.length > 0) {
@@ -149,8 +149,8 @@ export async function issueAttempt(userId: string): Promise<IssuedAttemptResult>
     }
 
     // 2. Pick remaining candidates prioritizing distinct themes
-    const remainingPool = cryptoShuffle(candidates.filter((q) => !pickedIds.has(q.id)));
-    const chosenThemes = new Set<string>(pathPicked.map((q) => q.theme));
+    const remainingPool: QuestionRecord[] = cryptoShuffle(candidates.filter((q: QuestionRecord) => !pickedIds.has(q.id)));
+    const chosenThemes = new Set<string>(pathPicked.map((q: QuestionRecord) => q.theme));
 
     // First try picking questions from new themes
     for (const q of remainingPool) {
@@ -208,13 +208,13 @@ export async function issueAttempt(userId: string): Promise<IssuedAttemptResult>
       },
     });
 
-    const itemsData = shuffledOverall.map((q, idx) => ({
+    const itemsData = shuffledOverall.map((q: QuestionRecord, idx: number) => ({
       attemptId: createdAttempt.id,
       questionId: q.id,
       position: idx + 1,
     }));
 
-    await tx.assessmentAttemptItem.createMany({
+    await (tx as any).assessmentAttemptItem.createMany({
       data: itemsData,
     });
 
@@ -225,7 +225,7 @@ export async function issueAttempt(userId: string): Promise<IssuedAttemptResult>
   return {
     attemptId: attempt.id,
     expiresAt,
-    questions: shuffledOverall.map((q, idx) => ({
+    questions: shuffledOverall.map((q: QuestionRecord, idx: number) => ({
       id: q.id,
       text: q.text,
       position: idx + 1,
