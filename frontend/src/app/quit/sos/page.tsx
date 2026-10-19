@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { QUIT_COPY } from '@/lib/quitCopy';
 import QuitFooter from '@/components/quit/QuitFooter';
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function QuitSosPage() {
+  const router = useRouter();
   const [activeTool, setActiveTool] = useState<'NONE' | 'BREATHE' | 'DELAY' | 'WATER' | 'MOVE' | 'DISTRACT'>('NONE');
   const [cravingId, setCravingId] = useState<string | null>(null);
   const [intensity, setIntensity] = useState<number>(7);
@@ -45,7 +47,12 @@ export default function QuitSosPage() {
       if (res.craving) {
         setCravingId(res.craving.id);
       }
-    } catch (e) {
+    } catch (e: any) {
+      const msg = (e.message || '').toUpperCase();
+      if (msg.includes('CONSENT') || msg.includes('PROFILE_NOT_FOUND') || msg.includes('NOT FOUND')) {
+        router.push('/quit/start');
+        return;
+      }
       console.error('Failed to start craving session', e);
     }
   };

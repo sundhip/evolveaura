@@ -85,11 +85,12 @@ export default function QuitHubPage() {
         console.error('Today checkin fetch error', e);
       }
     } catch (err: any) {
-      if (err.message?.includes('consent') || err.message?.includes('profile not found')) {
+      const msg = (err.message || '').toUpperCase();
+      if (msg.includes('CONSENT') || msg.includes('PROFILE_NOT_FOUND') || msg.includes('NOT FOUND')) {
         router.push('/quit/start');
-      } else {
-        setError(err.message || 'Failed to load Smoke-Free path');
+        return;
       }
+      setError(err.message || 'Failed to load Smoke-Free path');
     } finally {
       setLoading(false);
     }

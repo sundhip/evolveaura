@@ -85,6 +85,11 @@ export default function QuitProgressPage() {
         setReminderTime(profRes.profile.checkInReminderTime);
       }
     } catch (err: any) {
+      const msg = (err.message || '').toUpperCase();
+      if (msg.includes('CONSENT') || msg.includes('PROFILE_NOT_FOUND') || msg.includes('NOT FOUND')) {
+        router.push('/quit/start');
+        return;
+      }
       setError(err.message || 'Failed to load progress data');
     } finally {
       setLoading(false);

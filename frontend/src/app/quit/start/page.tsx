@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { QUIT_COPY } from '@/lib/quitCopy';
@@ -34,6 +34,29 @@ export default function QuitStartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    checkExistingConsent();
+  }, []);
+
+  const checkExistingConsent = async () => {
+    try {
+      const res = await apiRequest('/quit/profile');
+      if (res.profile?.hasConsented) {
+        setIsOver18(true);
+        setHasInformedConsent(true);
+        if (res.profile.status === 'ASSESSING') {
+          setStep('FTND');
+        } else if (res.profile.status === 'PLANNING') {
+          router.push('/quit/plan');
+        } else if (res.profile.status === 'ACTIVE' || res.profile.status === 'QUIT_DATE_SET') {
+          router.push('/quit');
+        }
+      }
+    } catch {
+      // User hasn't consented yet or no profile; stay on CONSENT step
+    }
+  };
+
   const handleConsentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setConsentError(null);
@@ -51,7 +74,12 @@ export default function QuitStartPage() {
       setSubmitting(true);
       await apiRequest('/quit/consent', {
         method: 'POST',
-        body: JSON.stringify({ isOver18, hasInformedConsent })
+        body: JSON.stringify({
+          isOver18,
+          hasInformedConsent,
+          ageConfirmed18: isOver18,
+          consentGiven: hasInformedConsent
+        })
       });
       setStep('FTND');
     } catch (err: any) {

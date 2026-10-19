@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 import { QUIT_COPY } from '@/lib/quitCopy';
 import QuitFooter from '@/components/quit/QuitFooter';
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 
 export default function QuitCheckinPage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [cigarettesSmoked, setCigarettesSmoked] = useState<number>(0);
   const [cravingCount, setCravingCount] = useState<number>(0);
@@ -60,6 +62,11 @@ export default function QuitCheckinPage() {
       }
       setHistory(histRes.checkIns || []);
     } catch (err: any) {
+      const msg = (err.message || '').toUpperCase();
+      if (msg.includes('CONSENT') || msg.includes('PROFILE_NOT_FOUND') || msg.includes('NOT FOUND')) {
+        router.push('/quit/start');
+        return;
+      }
       setError(err.message || 'Failed to load check-in data');
     } finally {
       setLoading(false);
