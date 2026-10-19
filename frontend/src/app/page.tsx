@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Zap, Compass, Heart } from 'lucide-react';
 import AwakeningTour from '../components/AwakeningTour';
-import { QUIT_COPY } from '@/lib/quitCopy';
 
 export default function LandingPage() {
   const [showTour, setShowTour] = useState(false);
@@ -93,60 +92,6 @@ export default function LandingPage() {
             Begin Your Evolution
           </Link>
         </motion.div>
-      </div>
-
-      {/* Smoke-Free Path Invitation Section */}
-      <div className="w-full max-w-4xl my-16">
-        <div className="glass-panel p-8 sm:p-10 border border-emerald-500/30 bg-emerald-950/10 rounded-3xl relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
-                <span>{QUIT_COPY.landingSectionBadge}</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                {QUIT_COPY.landingSectionTitle}
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl leading-relaxed">
-                {QUIT_COPY.landingSectionSubtitle}
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0">
-              <Link
-                href="/quit/try"
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold border border-slate-700 text-center transition"
-              >
-                {QUIT_COPY.landingTryButton}
-              </Link>
-              <Link
-                href="/quit"
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold text-center shadow-lg shadow-emerald-950/30 transition"
-              >
-                {QUIT_COPY.landingStartButton}
-              </Link>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t border-slate-800/80">
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <div className="text-xs font-bold text-emerald-400 mb-1">{QUIT_COPY.landingFeature1Title}</div>
-              <div className="text-[11px] text-slate-400 leading-relaxed">{QUIT_COPY.landingFeature1Desc}</div>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <div className="text-xs font-bold text-amber-400 mb-1">{QUIT_COPY.landingFeature2Title}</div>
-              <div className="text-[11px] text-slate-400 leading-relaxed">{QUIT_COPY.landingFeature2Desc}</div>
-            </div>
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <div className="text-xs font-bold text-blue-400 mb-1">{QUIT_COPY.landingFeature3Title}</div>
-              <div className="text-[11px] text-slate-400 leading-relaxed">{QUIT_COPY.landingFeature3Desc}</div>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-800/60 text-[11px] text-slate-500 text-center sm:text-left flex items-center justify-between flex-wrap gap-2">
-            <span>{QUIT_COPY.landingProfessionalSupportNote}</span>
-            <span className="text-emerald-400 font-medium">Toll-Free 1800-11-2356</span>
-          </div>
-        </div>
       </div>
 
       {/* Bottom Features */}
